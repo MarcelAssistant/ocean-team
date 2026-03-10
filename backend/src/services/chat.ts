@@ -89,7 +89,7 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
         model,
         messages: apiMessages,
         temperature: agent.temperature,
-        max_tokens: agent.maxTokens,
+        max_completion_tokens: agent.maxTokens,
         ...(usedTools.length > 0 ? { tools: usedTools } : {}),
       });
 
