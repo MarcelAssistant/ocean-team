@@ -38,7 +38,7 @@ async function main() {
 
   // ── Settings ────────────────────────────────────
   const defaultSettings = [
-    ["openai_api_key", ""], ["default_model", "venice-uncensored"], ["telegram_bot_token", ""],
+    ["openai_api_key", ""], ["default_model", "llama-3.3-70b"], ["telegram_bot_token", ""],
     ["user_name", ""], ["assistant_name", "Ocean"], ["assistant_personality", ""],
     ["email_imap_host", ""], ["email_imap_port", "993"], ["email_imap_user", ""], ["email_imap_pass", ""],
     ["email_smtp_host", ""], ["email_smtp_port", "587"], ["email_smtp_user", ""], ["email_smtp_pass", ""],
@@ -220,7 +220,7 @@ async function main() {
   // Orchestrator
   const orchestrator = await prisma.agent.upsert({
     where: { id: "orchestrator-001" },
-    update: { systemPrompt: ORCHESTRATOR_PROMPT, model: "venice-uncensored" },
+    update: { systemPrompt: ORCHESTRATOR_PROMPT, model: "llama-3.3-70b" },
     create: {
       id: "orchestrator-001",
       name: "Ocean",
@@ -228,7 +228,7 @@ async function main() {
       role: "Coordinator",
       mission: "Break down product and research goals into actionable work, create tickets, and assign them to the right agents.",
       systemPrompt: ORCHESTRATOR_PROMPT,
-      model: "venice-uncensored",
+      model: "llama-3.3-70b",
       temperature: 0.4,
       maxTokens: 2048,
       enabled: true,
@@ -239,7 +239,7 @@ async function main() {
   // Ensure orchestrator always uses Venice (fix for existing deployments)
   await prisma.agent.updateMany({
     where: { id: "orchestrator-001" },
-    data: { model: "venice-uncensored" },
+    data: { model: "llama-3.3-70b" },
   });
 
   // Concept & Script Agent

@@ -14,7 +14,8 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
     include: { agentSkills: { include: { skill: true } } },
   });
 
-  const useVenice = agent.model.startsWith("venice-");
+  // Venice API hosts: venice-*, llama-*, and other non-OpenAI models
+  const useVenice = !agent.model.startsWith("gpt-") && !agent.model.startsWith("openai-");
   const apiKeySetting = useVenice
     ? await prisma.setting.findUnique({ where: { key: "venice_api_key" } })
     : await prisma.setting.findUnique({ where: { key: "openai_api_key" } });

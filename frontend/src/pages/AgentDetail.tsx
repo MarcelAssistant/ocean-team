@@ -74,9 +74,12 @@ function ConfigTab({ agent, onUpdate }: { agent: any; onUpdate: () => void }) {
       <div className="grid grid-cols-3 gap-3">
         <div><Label>Model</Label>
           <select value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} className="w-full rounded-md border px-3 py-2 text-sm" style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
-            <optgroup label="Standard">
-              <option value="gpt-4o-mini">gpt-4o-mini</option>
+            <optgroup label="Venice (recommended for Ocean)">
+              <option value="llama-3.3-70b">llama-3.3-70b</option>
               <option value="venice-uncensored">venice-uncensored</option>
+            </optgroup>
+            <optgroup label="OpenAI">
+              <option value="gpt-4o-mini">gpt-4o-mini</option>
             </optgroup>
             <optgroup label="Higher (when necessary)">
               <option value="gpt-4o">gpt-4o</option>

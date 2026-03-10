@@ -6,6 +6,8 @@ const MODEL_COSTS: Record<string, { input: number; output: number }> = {
   "gpt-4o": { input: 2.5 / 1e6, output: 10 / 1e6 },
   "gpt-4-turbo": { input: 10 / 1e6, output: 30 / 1e6 },
   "text-embedding-3-small": { input: 0.02 / 1e6, output: 0 },
+  "llama-3.3-70b": { input: 0.70 / 1e6, output: 2.80 / 1e6 },
+  "venice-uncensored": { input: 0.20 / 1e6, output: 0.90 / 1e6 },
 };
 
 export async function usageRoutes(app: FastifyInstance) {

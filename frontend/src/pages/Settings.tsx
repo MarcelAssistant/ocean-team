@@ -91,9 +91,12 @@ function ConnectionsTab() {
           <div><Label>API Key</Label><Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={settings.openai_api_key || "sk-..."} /></div>
           <div><Label>Model</Label>
             <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
-              <optgroup label="Standard (recommended)">
-                <option value="gpt-4o-mini">gpt-4o-mini (OpenAI)</option>
-                <option value="venice-uncensored">venice-uncensored (Venice)</option>
+              <optgroup label="Venice (recommended for Ocean)">
+                <option value="llama-3.3-70b">llama-3.3-70b</option>
+                <option value="venice-uncensored">venice-uncensored</option>
+              </optgroup>
+              <optgroup label="OpenAI">
+                <option value="gpt-4o-mini">gpt-4o-mini</option>
               </optgroup>
               <optgroup label="Higher (use only when necessary)">
                 <option value="gpt-4o">gpt-4o (OpenAI)</option>
