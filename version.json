@@ -1,0 +1,42 @@
+{
+  "version": "1.1.0",
+  "releasedAt": "2026-03-10",
+  "changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2026-03-10",
+      "title": "Task categories, email page, weather, auto-update",
+      "changes": [
+        "Task categories: Work, Personal, School, Travel, Health, Finance",
+        "Email page: inbox, sent, compose, reply, delete",
+        "Weather widget on dashboard with inline city change",
+        "Location & timezone setup during onboarding",
+        "Self-update from Settings — no terminal needed",
+        "Notification bell with unread count",
+        "Global search across tasks, calendar, notes, memories",
+        "Calendar week view with manual event management",
+        "Notes pinboard with pin-to-top",
+        "Isolated workspace per instance for multi-user VMs"
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-03-09",
+      "title": "Initial release",
+      "changes": [
+        "Chat with AI assistant (OpenAI GPT-4o-mini)",
+        "Task management with priorities and due dates",
+        "Automations with recurring workflows",
+        "Module system (Finance, Travel, School, Health)",
+        "File upload with auto-summarize (PDF, Excel)",
+        "Reminders with recurring support",
+        "Telegram bot integration",
+        "Email integration (IMAP/SMTP)",
+        "Vector memory with semantic search",
+        "Password-protected remote access",
+        "Multi-instance support for families",
+        "Daily backups, cost tracking, prompt optimizer"
+      ]
+    }
+  ]
+}

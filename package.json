@@ -1,0 +1,27 @@
+{
+  "name": "zeus",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "check": "bash setup.sh --check",
+    "setup": "bash setup.sh",
+    "dev": "concurrently -n backend,frontend -c blue,green \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
+    "start": "pnpm --filter frontend build && pnpm --filter backend dev",
+    "build": "pnpm --filter frontend build",
+    "worker": "pnpm --filter backend worker",
+    "seed": "pnpm --filter backend seed",
+    "db:migrate": "pnpm --filter backend db:migrate",
+    "db:generate": "pnpm --filter backend db:generate"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

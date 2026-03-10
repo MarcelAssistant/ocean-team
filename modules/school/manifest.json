@@ -1,0 +1,85 @@
+{
+  "settings": [
+    {
+      "key": "school_name",
+      "label": "School Name",
+      "type": "text",
+      "required": true,
+      "description": "Name of the school"
+    },
+    {
+      "key": "student_name",
+      "label": "Student Name",
+      "type": "text",
+      "required": true,
+      "description": "Student's name"
+    },
+    {
+      "key": "school_portal_url",
+      "label": "School Portal URL",
+      "type": "text",
+      "required": false,
+      "description": "URL for the school's online portal"
+    },
+    {
+      "key": "school_portal_user",
+      "label": "Portal Username",
+      "type": "text",
+      "required": false
+    },
+    {
+      "key": "school_portal_pass",
+      "label": "Portal Password",
+      "type": "password",
+      "required": false
+    }
+  ],
+  "agents": [
+    {
+      "name": "School Agent",
+      "role": "Education assistant",
+      "mission": "Help manage school tasks and schedules",
+      "systemPrompt": "You are a school management assistant. Help track homework, assignments, grades, and school schedules.",
+      "tags": [
+        "school",
+        "education"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "name": "add_assignment",
+      "description": "Add a homework assignment",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "title"
+        ]
+      }
+    },
+    {
+      "name": "grade_report",
+      "description": "Generate a grade summary",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "student": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

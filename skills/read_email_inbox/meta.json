@@ -1,0 +1,21 @@
+{
+  "name": "read_email_inbox",
+  "description": "Auto-generated stub for: read_email_inbox",
+  "version": "0.1.0",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "input": {
+        "type": "string"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "agents": [
+    {
+      "name": "Finance Agent",
+      "role": "Financial analyst",
+      "mission": "Track and analyze personal finances",
+      "systemPrompt": "You are a finance assistant. Help the user track expenses, manage budgets, and provide financial insights.",
+      "tags": [
+        "finance"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "name": "log_expense",
+      "description": "Log an expense with amount, category, and date",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "category"
+        ]
+      }
+    },
+    {
+      "name": "budget_report",
+      "description": "Generate a budget summary report",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "scheduledTasks": [
+    {
+      "name": "weekly_finance_report",
+      "description": "Generate weekly spending summary",
+      "intervalMin": 10080
+    }
+  ],
+  "pages": [
+    "dashboard",
+    "transactions",
+    "budgets"
+  ]
+}

@@ -1,0 +1,291 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Agent {
+  id            String         @id @default(uuid())
+  name          String
+  description   String         @default("")
+  role          String         @default("")
+  mission       String         @default("")
+  systemPrompt  String         @default("You are a helpful assistant.")
+  model         String         @default("gpt-4o-mini")
+  temperature   Float          @default(0.7)
+  maxTokens     Int            @default(2048)
+  enabled       Boolean        @default(true)
+  tags          String         @default("[]")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+  memories      Memory[]
+  tickets       Ticket[]
+  isSystem           Boolean        @default(false)
+  moduleSlug         String?
+  agentSkills        AgentSkill[]
+  telegramPairings   TelegramPairing[]
+  scheduledTasks     ScheduledTask[]
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  agentId   String
+  title     String    @default("New Conversation")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  agent     Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  messages  Message[]
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  role           String
+  content        String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Memory {
+  id         String   @id @default(uuid())
+  agentId    String
+  type       String   @default("note")
+  content    String
+  ticketId   String?
+  embedding  String   @default("")
+  chunkIndex Int      @default(0)
+  sourceId   String?
+  relevance  Float    @default(1.0)
+  createdAt  DateTime @default(now())
+  agent      Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model Ticket {
+  id          String    @id @default(uuid())
+  title       String
+  description String    @default("")
+  priority    String    @default("medium")
+  status      String    @default("queued")
+  category    String    @default("Personal")
+  agentId     String?
+  output      String    @default("")
+  dueAt       DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  agent       Agent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
+}
+
+model Skill {
+  id                 String       @id @default(uuid())
+  name               String       @unique
+  description        String       @default("")
+  inputSchema        String       @default("{}")
+  outputSchema       String       @default("{}")
+  implementationPath String       @default("")
+  enabled            Boolean      @default(true)
+  version            String       @default("1.0.0")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  agentSkills        AgentSkill[]
+}
+
+model AgentSkill {
+  id      String @id @default(uuid())
+  agentId String
+  skillId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  skill   Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, skillId])
+}
+
+model SkillGap {
+  id             String   @id @default(uuid())
+  skillName      String
+  triggerContext String   @default("")
+  agentId        String?
+  resolved       Boolean  @default(false)
+  generatedPath  String?
+  createdAt      DateTime @default(now())
+}
+
+model TelegramPairing {
+  id             String   @id @default(uuid())
+  telegramChatId String   @unique
+  agentId        String
+  conversationId String?
+  chatTitle      String   @default("")
+  createdAt      DateTime @default(now())
+  agent          Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model TelegramPairingCode {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  agentId   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model ScheduledTask {
+  id          String   @id @default(uuid())
+  name        String
+  description String   @default("")
+  intervalMin Int      @default(60)
+  agentId     String?
+  enabled     Boolean  @default(true)
+  taskType    String   @default("system")
+  taskConfig  String   @default("{}")
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  lastResult  String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  agent       Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+}
+
+model Automation {
+  id          String   @id @default(uuid())
+  what        String
+  systems     String   @default("")
+  frequency   String   @default("")
+  dataSource  String   @default("")
+  delivery    String   @default("")
+  status      String   @default("draft")
+  ticketId    String?
+  testResult  String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailMessage {
+  id          String   @id @default(uuid())
+  messageId   String   @default("")
+  from        String
+  to          String
+  subject     String
+  body        String
+  htmlBody    String   @default("")
+  date        DateTime @default(now())
+  folder      String   @default("INBOX")
+  isRead      Boolean  @default(false)
+  summary     String   @default("")
+  attachments String   @default("[]")
+  direction   String   @default("inbound")
+  createdAt   DateTime @default(now())
+}
+
+model Module {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  name          String
+  description   String   @default("")
+  version       String   @default("1.0.0")
+  author        String   @default("")
+  icon          String   @default("")
+  status        String   @default("available")
+  config        String   @default("{}")
+  manifest      String   @default("{}")
+  installedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Reminder {
+  id        String    @id @default(uuid())
+  title     String
+  dueAt     DateTime
+  recurring String    @default("")
+  status    String    @default("pending")
+  notified  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String   @default("info")
+  title     String
+  body      String   @default("")
+  read      Boolean  @default(false)
+  link      String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model CalendarEvent {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @default("")
+  startAt     DateTime
+  endAt       DateTime?
+  allDay      Boolean  @default(false)
+  location    String   @default("")
+  source      String   @default("manual")
+  sourceId    String   @default("")
+  color       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  title     String   @default("")
+  content   String
+  pinned    Boolean  @default(false)
+  color     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VideoCharacter {
+  id           String        @id @default(uuid())
+  name         String
+  style        String        @default("hyper_realistic") // hyper_realistic | manga_realistic
+  appearance   String        @default("")  // look, physique, face
+  attitude     String        @default("")  // personality, tone
+  role         String        @default("")  // general role in stories
+  notes        String        @default("")
+  referenceImagePath String  @default("") // optional file name in workspace for reference
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  outfits      VideoOutfit[]
+}
+
+model VideoOutfit {
+  id           String        @id @default(uuid())
+  characterId  String
+  name         String        // e.g. "Casual", "Formal", "Battle"
+  description  String        @default("")  // clothes, accessories, colors
+  referenceImagePath String  @default("")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  character    VideoCharacter @relation(fields: [characterId], references: [id], onDelete: Cascade)
+}
+
+model ApiUsage {
+  id          String   @id @default(uuid())
+  model       String
+  promptTokens    Int  @default(0)
+  completionTokens Int @default(0)
+  totalTokens     Int  @default(0)
+  estimatedCost   Float @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model LogEntry {
+  id        String   @id @default(uuid())
+  level     String   @default("info")
+  source    String   @default("system")
+  message   String
+  meta      String   @default("{}")
+  createdAt DateTime @default(now())
+}
