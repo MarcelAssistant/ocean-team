@@ -48,12 +48,14 @@ function ConnectionsTab() {
   const [model, setModel] = useState("gpt-4o-mini");
   const [tgToken, setTgToken] = useState("");
   const [veniceKey, setVeniceKey] = useState("");
-  const [veniceModel, setVeniceModel] = useState("wan-2.5-preview-image-to-video");
+  const [veniceModel, setVeniceModel] = useState("wan-2.6-image-to-video");
   const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState("");
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
+  const [veniceTestResult, setVeniceTestResult] = useState<any>(null);
+  const [testingVenice, setTestingVenice] = useState(false);
   const [tgStatus, setTgStatus] = useState<any>({ running: false });
   const [tgAction, setTgAction] = useState(false);
 
@@ -83,6 +85,24 @@ function ConnectionsTab() {
     } finally { setSaving(false); }
   };
 
+  const testVenice = async () => {
+    setTestingVenice(true);
+    setVeniceTestResult(null);
+    try {
+      const key = veniceKey.trim();
+      if (!key) {
+        setVeniceTestResult({ success: false, error: "Enter your Venice API key above" });
+        return;
+      }
+      const r = await api.testVeniceConnection(key, veniceModel);
+      setVeniceTestResult(r);
+    } catch (e: any) {
+      setVeniceTestResult({ success: false, error: e.message });
+    } finally {
+      setTestingVenice(false);
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-xl">
       <Card>
@@ -91,19 +111,11 @@ function ConnectionsTab() {
           <div><Label>API Key</Label><Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={settings.openai_api_key || "sk-..."} /></div>
           <div><Label>Model</Label>
             <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
-              <optgroup label="Venice">
-                <option value="venice-uncensored">Dolphin Mistral 24B (uncensored)</option>
-                <option value="llama-3.3-70b">llama-3.3-70b (with tools)</option>
-              </optgroup>
-              <optgroup label="OpenAI">
-                <option value="gpt-4o-mini">gpt-4o-mini</option>
-              </optgroup>
-              <optgroup label="Higher (use only when necessary)">
-                <option value="gpt-4o">gpt-4o (OpenAI)</option>
-                <option value="gpt-4-turbo">gpt-4-turbo (OpenAI)</option>
-              </optgroup>
+              <option value="gpt-4o-mini">gpt-4o-mini</option>
+              <option value="gpt-5.1">gpt-5.1</option>
+              <option value="gpt-4-turbo">gpt-4-turbo</option>
             </select>
-            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Default model for new agents. gpt-4o-mini supports tools. Venice key enables uncensored fallback when OpenAI refuses.</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Default for new agents. gpt-4o-mini for simple tasks, gpt-5.1 for complex thinking.</p>
           </div>
           <div className="flex gap-2 items-center">
             <Btn onClick={async () => { setTesting(true); try { setTestResult(await api.testConnection(model)); } catch (e:any) { setTestResult({ success: false, error: e.message }); } finally { setTesting(false); } }} disabled={testing}>{testing ? "..." : "Test"}</Btn>
@@ -127,8 +139,12 @@ function ConnectionsTab() {
         <h3 className="text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>Video — Venice AI</h3>
         <div className="space-y-3">
           <div><Label>Venice API Key</Label><Input type="password" value={veniceKey} onChange={(e) => setVeniceKey(e.target.value)} placeholder={settings.venice_api_key ? "••••••••" : "From venice.ai → Settings → API"} /></div>
-          <div><Label>Default video model</Label><Input value={veniceModel} onChange={(e) => setVeniceModel(e.target.value)} placeholder="wan-2.5-preview-image-to-video" /></div>
-          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Fallback when OpenAI refuses content. Also used for character image analysis and video generation.</p>
+          <div><Label>Default video model</Label><Input value={veniceModel} onChange={(e) => setVeniceModel(e.target.value)} placeholder="wan-2.6-image-to-video" /></div>
+          <div className="flex gap-2 items-center">
+            <Btn onClick={testVenice} disabled={testingVenice}>{testingVenice ? "..." : "Test connection"}</Btn>
+            {veniceTestResult && <span className="text-xs" style={{ color: veniceTestResult.success ? "#4ade80" : "#f87171" }}>{veniceTestResult.success ? "Connected" : veniceTestResult.error}</span>}
+          </div>
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Venice key is used <strong>only</strong> for video (Wan 2.6).</p>
         </div>
       </Card>
 

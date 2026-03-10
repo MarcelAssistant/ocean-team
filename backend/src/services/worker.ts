@@ -44,13 +44,13 @@ async function processNextTicket(): Promise<boolean> {
     });
 
     const taskPrompt = [
-      `You are processing a ticket assigned to you.`,
+      `You are processing a ticket assigned to you. You own this task — the pipeline runs autonomously with no user intervention until deliverables are ready.`,
       ``,
       `**Title:** ${ticket.title}`,
       `**Description:** ${ticket.description || "(no description)"}`,
       `**Priority:** ${ticket.priority}`,
       ``,
-      `Provide a thorough, actionable response. This is your deliverable for this task.`,
+      `Take full control: create sub-tickets for subtasks, assign to other agents, use your tools. The worker will pick up any new tickets automatically. Complete the work or hand off clearly.`,
     ].join("\n");
 
     const result = await chatWithAgent(ticket.agent.id, conversation.id, taskPrompt);

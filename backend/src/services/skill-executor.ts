@@ -436,21 +436,9 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
       return {
         success: false,
         data: {},
-        message: `Only "venice" is implemented for video generation. You chose "${tool}". Add Venice API key in Settings and use tool: "venice".`,
+        message: `Use "venice" (Venice AI Wan 2.6) for video generation. You chose "${tool}".`,
       };
     }
-
-    const apiKeySetting = await prisma.setting.findUnique({ where: { key: "venice_api_key" } });
-    if (!apiKeySetting?.value?.trim()) {
-      return {
-        success: false,
-        data: {},
-        message: "Venice API key is not set. Add it in Settings (Video / Venice AI).",
-      };
-    }
-
-    const modelSetting = await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } });
-    const model = (modelSetting?.value || "wan-2.5-preview-image-to-video").trim();
 
     let plan: {
       prompt?: string;
@@ -493,53 +481,46 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
       }
     }
     const durationRaw = plan.duration || (plan.scenes?.[0] as { duration?: string } | undefined)?.duration || "5s";
-    const duration = durationRaw === "10s" ? "10s" : "5s";
-    const resolution = (plan.resolution === "1080p" || plan.resolution === "480p" ? plan.resolution : "720p") as "480p" | "720p" | "1080p";
-    const aspect_ratio = String(plan.aspect_ratio || "16:9");
-
+    const duration = durationRaw === "10s" ? 10 : 5;
+    const resolution = (plan.resolution === "1080p" || plan.resolution === "480p" ? plan.resolution : "720p") as "720p" | "1080p";
     if (!prompt.trim()) {
       return { success: false, data: {}, message: "Video plan must include a prompt (or scenes[0].prompt)." };
     }
 
+    // Venice Wan 2.6
+    const apiKeySetting = await prisma.setting.findUnique({ where: { key: "venice_api_key" } });
+    if (!apiKeySetting?.value?.trim()) {
+      return { success: false, data: {}, message: "Venice API key not set. Add it in Settings (Video — Venice AI)." };
+    }
+    const modelSetting = await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } });
+    const model = (modelSetting?.value || "wan-2.6-image-to-video").trim();
+    const durationVenice = duration === 10 ? "10s" : "5s";
     try {
       const { queue_id, videoBuffer } = await generateVideoAndWait(
         apiKeySetting.value,
         {
           model,
           prompt: prompt.trim(),
-          duration,
+          duration: durationVenice,
           image_url: image_url?.trim() || undefined,
-          resolution,
-          aspect_ratio,
+          resolution: resolution as "480p" | "720p" | "1080p",
+          aspect_ratio: String(plan.aspect_ratio || "16:9"),
         },
         (msg) => log("info", "skill:video_render_request", msg)
       );
-
       const workspaceDir = path.join(getDataDir(), "workspace");
       if (!fs.existsSync(workspaceDir)) fs.mkdirSync(workspaceDir, { recursive: true });
       const fileName = `generated-${queue_id}.mp4`;
-      const filePath = path.join(workspaceDir, fileName);
-      fs.writeFileSync(filePath, videoBuffer);
-
-      await log("info", "skill:video_render_request", `Video saved: ${fileName} (${(videoBuffer.length / 1024).toFixed(1)} KB)`);
-
+      fs.writeFileSync(path.join(workspaceDir, fileName), videoBuffer);
+      await log("info", "skill:video_render_request", `Venice video saved: ${fileName}`);
       return {
         success: true,
-        data: {
-          queue_id,
-          video_file: fileName,
-          video_url: `/api/files/${fileName}`,
-          size_bytes: videoBuffer.length,
-        },
-        message: `Video generated and saved. Download: /api/files/${fileName}`,
+        data: { queue_id, video_file: fileName, video_url: `/api/files/${fileName}`, size_bytes: videoBuffer.length },
+        message: `Venice video saved. Download: /api/files/${fileName}`,
       };
     } catch (e: any) {
       await log("error", "skill:video_render_request", e.message, { tool: "venice" });
-      return {
-        success: false,
-        data: {},
-        message: `Venice video generation failed: ${e.message}`,
-      };
+      return { success: false, data: {}, message: `Venice video failed: ${e.message}` };
     }
   },
 };

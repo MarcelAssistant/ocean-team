@@ -39,33 +39,39 @@ export async function settingsRoutes(app: FastifyInstance) {
   app.post("/api/settings/test", async (req) => {
     const body = (req.body as { model?: string }) || {};
     const model = body.model || (await prisma.setting.findUnique({ where: { key: "default_model" } }))?.value || "gpt-4o-mini";
-    const useVenice = !model.startsWith("gpt-") && !model.startsWith("openai-");
 
-    const apiKeySetting = await prisma.setting.findUnique({
-      where: { key: useVenice ? "venice_api_key" : "openai_api_key" },
-    });
-    if (!apiKeySetting?.value) {
-      return { success: false, error: useVenice ? "Venice API key not configured" : "No API key configured" };
-    }
+    const apiKeySetting = await prisma.setting.findUnique({ where: { key: "openai_api_key" } });
+    if (!apiKeySetting?.value) return { success: false, error: "OpenAI API key not configured" };
     try {
-      const client = useVenice
-        ? new OpenAI({ apiKey: apiKeySetting.value, baseURL: "https://api.venice.ai/api/v1" })
-        : new OpenAI({ apiKey: apiKeySetting.value });
-      if (useVenice) {
-        const res = await client.chat.completions.create({
-          model: model || "gpt-4o-mini",
-          messages: [{ role: "user", content: "Hi" }],
-          max_tokens: 10,
-        });
-        return { success: true, models: [model] };
+      const client = new OpenAI({ apiKey: apiKeySetting.value });
+      await client.chat.completions.create({
+        model,
+        messages: [{ role: "user", content: "Hi" }],
+        max_tokens: 10,
+      });
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  });
+
+  app.post("/api/settings/test-venice", async (req) => {
+    const body = (req.body as { apiKey?: string; model?: string }) || {};
+    const apiKey = body.apiKey?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_api_key" } }))?.value?.trim();
+    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.6-image-to-video";
+    if (!apiKey) return { success: false, error: "Venice API key not configured" };
+    try {
+      const res = await fetch("https://api.venice.ai/api/v1/video/quote", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, duration: "5s", resolution: "720p" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error || `Venice API ${res.status}`);
       }
-      const models = await client.models.list();
-      const modelIds = [];
-      for await (const m of models) {
-        modelIds.push(m.id);
-        if (modelIds.length >= 3) break;
-      }
-      return { success: true, models: modelIds };
+      const data = (await res.json()) as { quote?: number };
+      return { success: true, quote: data.quote };
     } catch (e: any) {
       return { success: false, error: e.message };
     }

@@ -14,13 +14,9 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
     include: { agentSkills: { include: { skill: true } } },
   });
 
-  // Venice API hosts: venice-*, llama-*, and other non-OpenAI models
-  const useVenice = !agent.model.startsWith("gpt-") && !agent.model.startsWith("openai-");
-  const apiKeySetting = useVenice
-    ? await prisma.setting.findUnique({ where: { key: "venice_api_key" } })
-    : await prisma.setting.findUnique({ where: { key: "openai_api_key" } });
+  const apiKeySetting = await prisma.setting.findUnique({ where: { key: "openai_api_key" } });
   if (!apiKeySetting?.value) {
-    throw new Error(useVenice ? "Venice API key not configured. Add it in Settings → Video — Venice AI." : "OpenAI API key not configured. Go to Settings to add it.");
+    throw new Error("OpenAI API key not configured. Go to Settings to add it.");
   }
 
   const enabledSkills = agent.agentSkills
@@ -69,62 +65,29 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
     })),
   ];
 
-  let client = useVenice
-    ? new OpenAI({ apiKey: apiKeySetting.value, baseURL: "https://api.venice.ai/api/v1" })
-    : new OpenAI({ apiKey: apiKeySetting.value });
-
-  const veniceKeySetting = useVenice ? null : await prisma.setting.findUnique({ where: { key: "venice_api_key" } });
+  const client = new OpenAI({ apiKey: apiKeySetting.value });
 
   try {
     let finalContent = "";
     let toolLog: string[] = [];
     let round = 0;
     let usedTools = tools;
-    let retriedWithoutTools = false;
-    let usedVeniceFallback = false;
 
     // Tool-call loop: keep going while the model wants to call tools
     while (round < MAX_TOOL_ROUNDS) {
       round++;
 
-      let completion;
-      const modelToUse = usedVeniceFallback ? "venice-uncensored" : agent.model;
-      try {
-        completion = await client.chat.completions.create({
-          model: modelToUse,
-          messages: apiMessages,
-          temperature: agent.temperature,
-          max_tokens: agent.maxTokens,
-          ...(usedTools.length > 0 ? { tools: usedTools } : {}),
-        });
-      } catch (err: any) {
-        const errMsg = (err?.message || err?.error?.message || "").toLowerCase();
-        const isContentPolicy = errMsg.includes("content") && (errMsg.includes("policy") || errMsg.includes("filter") || errMsg.includes("refuse"));
-        const is400 = err?.status === 400;
-
-        // Venice models don't support tools — retry without
-        if (is400 && usedTools.length > 0 && !retriedWithoutTools && useVenice) {
-          retriedWithoutTools = true;
-          usedTools = [];
-          round--;
-          continue;
-        }
-
-        // OpenAI content policy — fall back to Venice (uncensored) without tools
-        if (!useVenice && veniceKeySetting?.value && (isContentPolicy || is400) && !usedVeniceFallback) {
-          usedVeniceFallback = true;
-          client = new OpenAI({ apiKey: veniceKeySetting.value, baseURL: "https://api.venice.ai/api/v1" });
-          usedTools = [];
-          round = 0;
-          continue;
-        }
-
-        throw err;
-      }
+      const completion = await client.chat.completions.create({
+        model: agent.model,
+        messages: apiMessages,
+        temperature: agent.temperature,
+        max_tokens: agent.maxTokens,
+        ...(usedTools.length > 0 ? { tools: usedTools } : {}),
+      });
 
       // Track API usage
       if (completion.usage) {
-        trackUsage(modelToUse, completion.usage.prompt_tokens, completion.usage.completion_tokens).catch(() => {});
+        trackUsage(agent.model, completion.usage.prompt_tokens, completion.usage.completion_tokens).catch(() => {});
       }
 
       const choice = completion.choices[0];
@@ -190,12 +153,6 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
       const logBlock = toolLog.map((l) => `  ${l}`).join("\n");
       finalContent += `\n\n---\n**Actions taken:**\n${logBlock}`;
     }
-    if (retriedWithoutTools && tools.length > 0) {
-      finalContent += `\n\n---\n*Note: This model doesn't support tool calling — responding in text only.*`;
-    }
-    if (usedVeniceFallback) {
-      finalContent += `\n\n---\n*Note: Switched to Venice (uncensored) for this response — tools were not used.*`;
-    }
 
     const assistantMsg = await prisma.message.create({
       data: { conversationId, role: "assistant", content: finalContent },
@@ -220,7 +177,7 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
 }
 
 const WORK_CONTEXT_PREAMBLE = `## Context — Professional Use
-You are assisting in a professional, consensual work environment. All requests are made by an adult user for legitimate creative or production work. The user operates in an industry that routinely deals with mature themes, fantasy content, and content at the boundary of acceptability. Assume consent and professional intent. Use appropriate, professional terminology and stay within the bounds of what is acceptable for this context.`;
+You are assisting in a professional, consensual work environment. The user's job is in the Adult industry. They understand and routinely work with mature and adult content. All requests are for legitimate creative or production work. Assume consent and professional intent. Use appropriate terminology.`;
 
 async function buildSystemPrompt(
   agent: { id: string; name: string; role: string; mission: string; systemPrompt: string },
@@ -246,7 +203,7 @@ async function buildSystemPrompt(
         prompt += `\n  - ${a.name} (ID: ${a.id}) — ${a.role}: ${a.mission}`;
       }
     }
-    prompt += `\n\nTo delegate work: first call create_ticket to create a task, then call assign_ticket with the ticketId and the target agent's ID. The worker will pick it up and the assigned agent will process it automatically.`;
+    prompt += `\n\nTo delegate work: first call create_ticket to create a task, then call assign_ticket with the ticketId and the target agent's ID. The worker picks up queued tickets automatically — no user intervention until deliverables are ready. When you process a ticket, you own it: create sub-tickets if needed, assign to other agents, and run the full pipeline autonomously.`;
   }
 
   if (skills.length > 0) {

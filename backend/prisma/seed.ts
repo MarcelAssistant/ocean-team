@@ -48,7 +48,7 @@ async function main() {
     ["elevenlabs_default_voice_id", ""],
     // Venice AI video generation
     ["venice_api_key", ""],
-    ["venice_default_video_model", "wan-2.5-preview-image-to-video"],
+    ["venice_default_video_model", "wan-2.6-image-to-video"],
   ];
   for (const [k, v] of defaultSettings) await upsertSetting(k, v);
 
@@ -146,12 +146,12 @@ async function main() {
     ),
     video_render_request: await upsertSkill(
       "video_render_request",
-      "Generate video via an external API. Use 'venice' for Venice AI (recommended). Plan JSON should include prompt, optional image_url, duration (5s or 10s), resolution, aspect_ratio.",
+      "Generate video via Venice AI Wan 2.6. Use tool 'venice'. Plan JSON: prompt, optional image_url, duration (5|10), resolution.",
       {
         tool: {
           type: "string",
-          enum: ["venice", "runway", "pika", "kling", "custom"],
-          description: "Rendering backend: venice (Venice AI), pika, runway, kling, or custom",
+          enum: ["venice"],
+          description: "Use venice for Venice AI Wan 2.6 video generation",
         },
         planJson: {
           type: "string",
@@ -219,10 +219,10 @@ async function main() {
     },
   });
 
-  // Orchestrator
+  // Orchestrator — gpt-5.1 for main agent (complex orchestration/planning)
   const orchestrator = await prisma.agent.upsert({
     where: { id: "orchestrator-001" },
-    update: { systemPrompt: ORCHESTRATOR_PROMPT, model: "gpt-4o-mini" },
+    update: { systemPrompt: ORCHESTRATOR_PROMPT, model: "gpt-5.1" },
     create: {
       id: "orchestrator-001",
       name: "Ocean",
@@ -230,7 +230,7 @@ async function main() {
       role: "Coordinator",
       mission: "Break down product and research goals into actionable work, create tickets, and assign them to the right agents.",
       systemPrompt: ORCHESTRATOR_PROMPT,
-      model: "gpt-4o-mini",
+      model: "gpt-5.1",
       temperature: 0.4,
       maxTokens: 2048,
       enabled: true,
@@ -238,16 +238,10 @@ async function main() {
     },
   });
 
-  // Ensure all agents use gpt-4o-mini (tools work; Venice fallback for content policy)
-  await prisma.agent.updateMany({
-    where: {},
-    data: { model: "gpt-4o-mini" },
-  });
-
-  // Concept & Script Agent
+  // Concept & Script Agent — gpt-5.1 for research/complex thinking
   const researcher = await prisma.agent.upsert({
     where: { id: "researcher-001" },
-    update: { model: "gpt-4o-mini" },
+    update: { model: "gpt-5.1" },
     create: {
       id: "researcher-001",
       name: "Concept & Script Agent",
@@ -255,7 +249,7 @@ async function main() {
       role: "Research & script",
       mission: "Research topics, explore references, and produce structured scripts and scenarios ready for production.",
       systemPrompt: RESEARCHER_PROMPT,
-      model: "gpt-4o-mini",
+      model: "gpt-5.1",
       temperature: 0.7,
       maxTokens: 4096,
       enabled: true,
@@ -551,7 +545,7 @@ When processing a ticket:
 - Structure your output with headings and bullet points
 - Be thorough but concise
 
-For mature or adult content: use professional or abstract terminology. Rephrase sensitively without refusing.`;
+The user works in the Adult industry and understands mature/adult content. Use professional terminology appropriate for creative production.`;
 
 main()
   .catch((e) => { console.error(e); process.exit(1); })

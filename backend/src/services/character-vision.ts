@@ -24,24 +24,17 @@ export async function describeCharacterFromImage(
   mimeType: string,
   style: "hyper_realistic" | "manga_realistic"
 ): Promise<{ appearance: string; attitude: string; role: string }> {
-  // Prefer Venice (uncensored) for character images; fall back to OpenAI gpt-4o-mini
-  const veniceKey = (await prisma.setting.findUnique({ where: { key: "venice_api_key" } }))?.value;
   const openaiKey = (await prisma.setting.findUnique({ where: { key: "openai_api_key" } }))?.value;
+  if (!openaiKey?.trim()) throw new Error("OpenAI API key not configured. Add it in Settings.");
 
-  const useVenice = veniceKey?.trim();
-  const apiKey = useVenice ? veniceKey : openaiKey;
-  if (!apiKey?.trim()) throw new Error("Add Venice API key (Settings → Video — Venice AI) or OpenAI key for image analysis.");
-
-  const client = useVenice
-    ? new OpenAI({ apiKey, baseURL: "https://api.venice.ai/api/v1" })
-    : new OpenAI({ apiKey });
+  const client = new OpenAI({ apiKey: openaiKey });
   const prompt = style === "manga_realistic" ? MANGA_REALISTIC_PROMPT : HYPER_REALISTIC_PROMPT;
 
   const base64 = imageBuffer.toString("base64");
   const mediaType = mimeType || "image/png";
 
   const res = await client.chat.completions.create({
-    model: useVenice ? "qwen3-vl-235b-a22b" : "gpt-4o-mini",
+    model: "gpt-4o-mini",
     max_tokens: 512,
     messages: [
       {
