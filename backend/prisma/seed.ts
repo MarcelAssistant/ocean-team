@@ -490,6 +490,10 @@ async function main() {
     data: { level: "info", source: "system", message: "Ocean system initialized with seed data" },
   });
 
+  // Fix common model typos (gpt-40-mini → gpt-4o-mini)
+  await prisma.agent.updateMany({ where: { model: "gpt-40-mini" }, data: { model: "gpt-4o-mini" } });
+  await prisma.agent.updateMany({ where: { model: "gpt-40" }, data: { model: "gpt-4o" } });
+
   console.log("Seed complete!");
   console.log("  - 6 agents: System, Ocean, Concept & Script, Character & World, Production, Review");
   console.log("  - 22 skills, 9 scheduled tasks, 1 skill gap");

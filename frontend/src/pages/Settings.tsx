@@ -115,7 +115,7 @@ function ConnectionsTab() {
               <option value="gpt-5.1">gpt-5.1</option>
               <option value="gpt-4-turbo">gpt-4-turbo</option>
             </select>
-            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Default for new agents. gpt-4o-mini for simple tasks, gpt-5.1 for complex thinking.</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Use gpt-4o-mini (letter O, not zero). gpt-5.1 for complex thinking.</p>
           </div>
           <div className="flex gap-2 items-center">
             <Btn onClick={async () => { setTesting(true); try { setTestResult(await api.testConnection(model)); } catch (e:any) { setTestResult({ success: false, error: e.message }); } finally { setTesting(false); } }} disabled={testing}>{testing ? "..." : "Test"}</Btn>

@@ -8,6 +8,13 @@ import { trackUsage } from "../routes/usage.js";
 
 const MAX_TOOL_ROUNDS = 5;
 
+/** Normalize common model typos (e.g. gpt-40-mini → gpt-4o-mini). */
+function normalizeModel(model: string): string {
+  if (model === "gpt-40-mini") return "gpt-4o-mini";
+  if (model === "gpt-40") return "gpt-4o";
+  return model;
+}
+
 export async function chatWithAgent(agentId: string, conversationId: string, userMessage: string) {
   const agent = await prisma.agent.findUniqueOrThrow({
     where: { id: agentId },
@@ -77,8 +84,9 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
     while (round < MAX_TOOL_ROUNDS) {
       round++;
 
+      const model = normalizeModel(agent.model);
       const completion = await client.chat.completions.create({
-        model: agent.model,
+        model,
         messages: apiMessages,
         temperature: agent.temperature,
         max_tokens: agent.maxTokens,
@@ -87,7 +95,7 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
 
       // Track API usage
       if (completion.usage) {
-        trackUsage(agent.model, completion.usage.prompt_tokens, completion.usage.completion_tokens).catch(() => {});
+        trackUsage(model, completion.usage.prompt_tokens, completion.usage.completion_tokens).catch(() => {});
       }
 
       const choice = completion.choices[0];
