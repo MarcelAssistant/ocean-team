@@ -58,7 +58,7 @@ export async function settingsRoutes(app: FastifyInstance) {
   app.post("/api/settings/test-venice", async (req) => {
     const body = (req.body as { apiKey?: string; model?: string }) || {};
     const apiKey = body.apiKey?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_api_key" } }))?.value?.trim();
-    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.6-image-to-video";
+    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.5-preview-image-to-video";
     if (!apiKey) return { success: false, error: "Venice API key not configured" };
     try {
       const res = await fetch("https://api.venice.ai/api/v1/video/quote", {
@@ -80,7 +80,7 @@ export async function settingsRoutes(app: FastifyInstance) {
   app.post("/api/settings/generate-test-video", async (req) => {
     const body = (req.body as { apiKey?: string; model?: string }) || {};
     const apiKey = body.apiKey?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_api_key" } }))?.value?.trim();
-    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.6-image-to-video";
+    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.5-preview-image-to-video";
     if (!apiKey) return { success: false, error: "Venice API key not configured" };
     try {
       const { generateVideoAndWait } = await import("../services/venice.js");
@@ -88,8 +88,9 @@ export async function settingsRoutes(app: FastifyInstance) {
       const pathMod = await import("path");
       const fs = await import("fs");
 
-      // Image-to-video models require image_url — use a valid 360x360 placeholder (Venice may reject tiny images)
-      const placeholderImage = "https://placehold.co/360x360/1a1a2e/4a4a5a/png";
+      // Venice image-to-video requires image_url. Use data URL (Venice fetches URLs; data URL is more reliable)
+      // Minimal 64x64 gray PNG — Venice docs example uses data:image/png;base64,...
+      const placeholderImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAMElEQVR42u3OMQEAAAjDMMC/52ECvlCI00nZ3r0dAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwG6xoAAZ/1HwsAAAAASUVORK5CYII=";
       const { queue_id, videoBuffer } = await generateVideoAndWait(apiKey, {
         model,
         prompt: "Smooth gradient background slowly shifting colors, cinematic motion, high quality",

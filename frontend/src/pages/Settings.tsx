@@ -53,7 +53,7 @@ function ConnectionsTab() {
   const [model, setModel] = useState("gpt-4o-mini");
   const [tgToken, setTgToken] = useState("");
   const [veniceKey, setVeniceKey] = useState("");
-  const [veniceModel, setVeniceModel] = useState("wan-2.6-image-to-video");
+  const [veniceModel, setVeniceModel] = useState("wan-2.5-preview-image-to-video");
   const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -159,14 +159,14 @@ function ConnectionsTab() {
         <h3 className="text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>Video — Venice AI</h3>
         <div className="space-y-3">
           <div><Label>Venice API Key</Label><Input type="password" value={veniceKey} onChange={(e) => setVeniceKey(e.target.value)} placeholder={settings.venice_api_key ? "••••••••" : "From venice.ai → Settings → API"} /></div>
-          <div><Label>Default video model</Label><Input value={veniceModel} onChange={(e) => setVeniceModel(e.target.value)} placeholder="wan-2.6-image-to-video" /></div>
+          <div><Label>Default video model</Label><Input value={veniceModel} onChange={(e) => setVeniceModel(e.target.value)} placeholder="wan-2.5-preview-image-to-video" /></div>
           <div className="flex gap-2 items-center flex-wrap">
             <Btn onClick={testVenice} disabled={testingVenice}>{testingVenice ? "..." : "Test connection"}</Btn>
             <Btn variant="ghost" onClick={testGenerateVideo} disabled={generatingVideo}>{generatingVideo ? "Generating (1–2 min)…" : "Generate test video"}</Btn>
             {veniceTestResult && <span className="text-xs" style={{ color: veniceTestResult.success ? "#4ade80" : "#f87171" }}>{veniceTestResult.success ? "Connected" : veniceTestResult.error}</span>}
             {generateResult && <span className="text-xs" style={{ color: generateResult.success ? "#4ade80" : "#f87171" }}>{generateResult.success ? `Saved: ${generateResult.fileName}` : generateResult.error}</span>}
           </div>
-          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Venice key is used <strong>only</strong> for video (Wan 2.6). Generate test video runs a real 5s render.</p>
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Venice key for video. Use <strong>wan-2.5-preview-image-to-video</strong> (Wan 2.6 is on a different API).</p>
         </div>
       </Card>
 

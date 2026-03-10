@@ -48,7 +48,7 @@ async function main() {
     ["elevenlabs_default_voice_id", ""],
     // Venice AI video generation
     ["venice_api_key", ""],
-    ["venice_default_video_model", "wan-2.6-image-to-video"],
+    ["venice_default_video_model", "wan-2.5-preview-image-to-video"],
   ];
   for (const [k, v] of defaultSettings) await upsertSetting(k, v);
 
