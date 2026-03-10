@@ -32,7 +32,7 @@ export async function agentRoutes(app: FastifyInstance) {
         role: body.role || "",
         mission: body.mission || "",
         systemPrompt: body.systemPrompt || "You are a helpful assistant.",
-        model: body.model || "gpt-4o-mini",
+        model: body.model || "venice-uncensored",
         temperature: body.temperature ?? 0.7,
         maxTokens: body.maxTokens ?? 2048,
         enabled: body.enabled ?? true,

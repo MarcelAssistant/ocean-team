@@ -8,6 +8,7 @@ const MODEL_COSTS: Record<string, { input: number; output: number }> = {
   "text-embedding-3-small": { input: 0.02 / 1e6, output: 0 },
   "llama-3.3-70b": { input: 0.70 / 1e6, output: 2.80 / 1e6 },
   "venice-uncensored": { input: 0.20 / 1e6, output: 0.90 / 1e6 },
+  "qwen3-vl-235b-a22b": { input: 0.25 / 1e6, output: 1.50 / 1e6 },
 };
 
 export async function usageRoutes(app: FastifyInstance) {
@@ -64,7 +65,7 @@ function groupByModel(records: any[]) {
 }
 
 export function estimateCost(model: string, promptTokens: number, completionTokens: number): number {
-  const rates = MODEL_COSTS[model] || MODEL_COSTS["gpt-4o-mini"];
+  const rates = MODEL_COSTS[model] || MODEL_COSTS["venice-uncensored"];
   return promptTokens * rates.input + completionTokens * rates.output;
 }
 

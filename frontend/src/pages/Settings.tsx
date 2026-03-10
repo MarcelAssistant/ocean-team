@@ -45,7 +45,7 @@ export default function Settings() {
 function ConnectionsTab() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gpt-4o-mini");
+  const [model, setModel] = useState("venice-uncensored");
   const [tgToken, setTgToken] = useState("");
   const [veniceKey, setVeniceKey] = useState("");
   const [veniceModel, setVeniceModel] = useState("wan-2.5-preview-image-to-video");
@@ -91,9 +91,9 @@ function ConnectionsTab() {
           <div><Label>API Key</Label><Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={settings.openai_api_key || "sk-..."} /></div>
           <div><Label>Model</Label>
             <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
-              <optgroup label="Venice (recommended for Ocean)">
-                <option value="llama-3.3-70b">llama-3.3-70b</option>
-                <option value="venice-uncensored">venice-uncensored</option>
+              <optgroup label="Venice">
+                <option value="venice-uncensored">Dolphin Mistral 24B (uncensored)</option>
+                <option value="llama-3.3-70b">llama-3.3-70b (with tools)</option>
               </optgroup>
               <optgroup label="OpenAI">
                 <option value="gpt-4o-mini">gpt-4o-mini</option>
@@ -128,7 +128,7 @@ function ConnectionsTab() {
         <div className="space-y-3">
           <div><Label>Venice API Key</Label><Input type="password" value={veniceKey} onChange={(e) => setVeniceKey(e.target.value)} placeholder={settings.venice_api_key ? "••••••••" : "From venice.ai → Settings → API"} /></div>
           <div><Label>Default video model</Label><Input value={veniceModel} onChange={(e) => setVeniceModel(e.target.value)} placeholder="wan-2.5-preview-image-to-video" /></div>
-          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Required for Ocean (main agent) and video generation. Add key here, then Ocean will use Venice.</p>
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Required for all agents (uncensored). Also used for character image analysis (vision) and video generation.</p>
         </div>
       </Card>
 

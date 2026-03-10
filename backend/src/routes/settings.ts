@@ -38,7 +38,7 @@ export async function settingsRoutes(app: FastifyInstance) {
 
   app.post("/api/settings/test", async (req) => {
     const body = (req.body as { model?: string }) || {};
-    const model = body.model || (await prisma.setting.findUnique({ where: { key: "default_model" } }))?.value || "gpt-4o-mini";
+    const model = body.model || (await prisma.setting.findUnique({ where: { key: "default_model" } }))?.value || "venice-uncensored";
     const useVenice = !model.startsWith("gpt-") && !model.startsWith("openai-");
 
     const apiKeySetting = await prisma.setting.findUnique({
@@ -53,7 +53,7 @@ export async function settingsRoutes(app: FastifyInstance) {
         : new OpenAI({ apiKey: apiKeySetting.value });
       if (useVenice) {
         const res = await client.chat.completions.create({
-          model: model || "llama-3.3-70b",
+          model: model || "venice-uncensored",
           messages: [{ role: "user", content: "Hi" }],
           max_tokens: 10,
         });

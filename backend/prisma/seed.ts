@@ -38,7 +38,7 @@ async function main() {
 
   // ── Settings ────────────────────────────────────
   const defaultSettings = [
-    ["openai_api_key", ""], ["default_model", "llama-3.3-70b"], ["telegram_bot_token", ""],
+    ["openai_api_key", ""], ["default_model", "venice-uncensored"], ["telegram_bot_token", ""],
     ["user_name", ""], ["assistant_name", "Ocean"], ["assistant_personality", ""],
     ["email_imap_host", ""], ["email_imap_port", "993"], ["email_imap_user", ""], ["email_imap_pass", ""],
     ["email_smtp_host", ""], ["email_smtp_port", "587"], ["email_smtp_user", ""], ["email_smtp_pass", ""],
@@ -200,7 +200,7 @@ async function main() {
   // System Agent (mandatory, cannot be deleted)
   const systemAgent = await prisma.agent.upsert({
     where: { id: "system-001" },
-    update: {},
+    update: { model: "venice-uncensored" },
     create: {
       id: "system-001",
       name: "System",
@@ -208,7 +208,7 @@ async function main() {
       role: "System maintenance",
       mission: "Keep the Ocean agent orchestrator healthy and operational",
       systemPrompt: "You are the System agent. You run scheduled maintenance tasks and health checks. Report issues clearly.",
-      model: "gpt-4o-mini",
+      model: "venice-uncensored",
       temperature: 0.2,
       maxTokens: 1024,
       enabled: true,
@@ -220,7 +220,7 @@ async function main() {
   // Orchestrator
   const orchestrator = await prisma.agent.upsert({
     where: { id: "orchestrator-001" },
-    update: { systemPrompt: ORCHESTRATOR_PROMPT, model: "llama-3.3-70b" },
+    update: { systemPrompt: ORCHESTRATOR_PROMPT, model: "venice-uncensored" },
     create: {
       id: "orchestrator-001",
       name: "Ocean",
@@ -228,7 +228,7 @@ async function main() {
       role: "Coordinator",
       mission: "Break down product and research goals into actionable work, create tickets, and assign them to the right agents.",
       systemPrompt: ORCHESTRATOR_PROMPT,
-      model: "llama-3.3-70b",
+      model: "venice-uncensored",
       temperature: 0.4,
       maxTokens: 2048,
       enabled: true,
@@ -236,16 +236,16 @@ async function main() {
     },
   });
 
-  // Ensure orchestrator always uses Venice (fix for existing deployments)
+  // Ensure all agents use Venice uncensored (fix for existing deployments)
   await prisma.agent.updateMany({
-    where: { id: "orchestrator-001" },
-    data: { model: "llama-3.3-70b" },
+    where: {},
+    data: { model: "venice-uncensored" },
   });
 
   // Concept & Script Agent
   const researcher = await prisma.agent.upsert({
     where: { id: "researcher-001" },
-    update: {},
+    update: { model: "venice-uncensored" },
     create: {
       id: "researcher-001",
       name: "Concept & Script Agent",
@@ -253,7 +253,7 @@ async function main() {
       role: "Research & script",
       mission: "Research topics, explore references, and produce structured scripts and scenarios ready for production.",
       systemPrompt: RESEARCHER_PROMPT,
-      model: "gpt-4o-mini",
+      model: "venice-uncensored",
       temperature: 0.7,
       maxTokens: 4096,
       enabled: true,
@@ -264,7 +264,7 @@ async function main() {
   // Character & World Agent
   const characterAgent = await prisma.agent.upsert({
     where: { id: "character-001" },
-    update: {},
+    update: { model: "venice-uncensored" },
     create: {
       id: "character-001",
       name: "Character & World Agent",
@@ -273,7 +273,7 @@ async function main() {
       mission: "Create, evolve, and catalog characters and outfits that can be reused across videos.",
       systemPrompt:
         "You are responsible for defining and maintaining a library of characters, faces, outfits, and worlds. Ensure consistency across projects and styles (hyper-realistic vs manga-realistic).",
-      model: "gpt-4o-mini",
+      model: "venice-uncensored",
       temperature: 0.7,
       maxTokens: 4096,
       enabled: true,
@@ -284,7 +284,7 @@ async function main() {
   // Production Agent
   const productionAgent = await prisma.agent.upsert({
     where: { id: "production-001" },
-    update: {},
+    update: { model: "venice-uncensored" },
     create: {
       id: "production-001",
       name: "Production Agent",
@@ -294,7 +294,7 @@ async function main() {
         "Convert scripts into production-ready plans, choose tools, prepare render payloads, and orchestrate iterations.",
       systemPrompt:
         "You are a technical video producer. You break scripts into scenes and shots, choose appropriate tools, and prepare payloads for external video/voice services.",
-      model: "gpt-4o-mini",
+      model: "venice-uncensored",
       temperature: 0.4,
       maxTokens: 4096,
       enabled: true,
@@ -305,7 +305,7 @@ async function main() {
   // QA & Review Agent
   const reviewAgent = await prisma.agent.upsert({
     where: { id: "review-001" },
-    update: {},
+    update: { model: "venice-uncensored" },
     create: {
       id: "review-001",
       name: "Review Agent",
@@ -315,7 +315,7 @@ async function main() {
         "Review videos and scripts, highlight issues, and propose concrete improvements based on the intended audience and style.",
       systemPrompt:
         "You are a critical but constructive reviewer for video content. You check alignment with objectives, pacing, clarity, and visual/style consistency.",
-      model: "gpt-4o-mini",
+      model: "venice-uncensored",
       temperature: 0.3,
       maxTokens: 3072,
       enabled: true,

@@ -77,18 +77,32 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
     let finalContent = "";
     let toolLog: string[] = [];
     let round = 0;
+    let usedTools = tools;
+    let retriedWithoutTools = false;
 
     // Tool-call loop: keep going while the model wants to call tools
     while (round < MAX_TOOL_ROUNDS) {
       round++;
 
-      const completion = await client.chat.completions.create({
-        model: agent.model,
-        messages: apiMessages,
-        temperature: agent.temperature,
-        max_tokens: agent.maxTokens,
-        ...(tools.length > 0 ? { tools } : {}),
-      });
+      let completion;
+      try {
+        completion = await client.chat.completions.create({
+          model: agent.model,
+          messages: apiMessages,
+          temperature: agent.temperature,
+          max_tokens: agent.maxTokens,
+          ...(usedTools.length > 0 ? { tools: usedTools } : {}),
+        });
+      } catch (err: any) {
+        // Some Venice models (e.g. venice-uncensored/Dolphin Mistral) don't support tools — retry without
+        if (err?.status === 400 && usedTools.length > 0 && !retriedWithoutTools) {
+          retriedWithoutTools = true;
+          usedTools = [];
+          round--;
+          continue;
+        }
+        throw err;
+      }
 
       // Track API usage
       if (completion.usage) {
@@ -157,6 +171,9 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
     if (toolLog.length > 0) {
       const logBlock = toolLog.map((l) => `  ${l}`).join("\n");
       finalContent += `\n\n---\n**Actions taken:**\n${logBlock}`;
+    }
+    if (retriedWithoutTools && tools.length > 0) {
+      finalContent += `\n\n---\n*Note: This model doesn't support tool calling — responding in text only. For full orchestration (tickets, assignments), use llama-3.3-70b.*`;
     }
 
     const assistantMsg = await prisma.message.create({
