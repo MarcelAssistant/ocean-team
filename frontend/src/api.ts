@@ -31,7 +31,7 @@ export const api = {
   updateSettings: (data: Record<string, string>) => request<any>("/settings", { method: "PUT", body: JSON.stringify(data) }),
   testConnection: (model?: string) =>
     request<any>("/settings/test", { method: "POST", body: JSON.stringify(model ? { model } : {}) }),
-  testVeniceConnection: (apiKey: string, model: string) =>
+  testVeniceConnection: (apiKey?: string, model?: string) =>
     request<any>("/settings/test-venice", { method: "POST", body: JSON.stringify({ apiKey, model }) }),
   generateTestVideo: (apiKey?: string, model?: string) =>
     request<any>("/settings/generate-test-video", { method: "POST", body: JSON.stringify({ apiKey, model }) }),

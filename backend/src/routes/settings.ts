@@ -88,8 +88,8 @@ export async function settingsRoutes(app: FastifyInstance) {
       const pathMod = await import("path");
       const fs = await import("fs");
 
-      // wan-2.6-image-to-video requires image_url — use minimal gradient placeholder (100x100 PNG)
-      const placeholderImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      // Image-to-video models require image_url — use a valid 360x360 placeholder (Venice may reject tiny images)
+      const placeholderImage = "https://placehold.co/360x360/1a1a2e/4a4a5a/png";
       const { queue_id, videoBuffer } = await generateVideoAndWait(apiKey, {
         model,
         prompt: "Smooth gradient background slowly shifting colors, cinematic motion, high quality",

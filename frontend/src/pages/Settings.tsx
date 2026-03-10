@@ -87,7 +87,10 @@ function ConnectionsTab() {
       if (elevenLabsKey) d.elevenlabs_api_key = elevenLabsKey;
       if (elevenLabsVoiceId) d.elevenlabs_default_voice_id = elevenLabsVoiceId;
       await api.updateSettings(d);
-      setApiKey(""); setTgToken(""); setVeniceKey(""); setElevenLabsKey("");
+      setApiKey("");
+      setTgToken("");
+      if (veniceKey) setVeniceKey("");
+      setElevenLabsKey("");
       setSettings(await api.getSettings());
     } finally { setSaving(false); }
   };
@@ -96,11 +99,7 @@ function ConnectionsTab() {
     setTestingVenice(true);
     setVeniceTestResult(null);
     try {
-      const key = veniceKey.trim();
-      if (!key) {
-        setVeniceTestResult({ success: false, error: "Enter your Venice API key above" });
-        return;
-      }
+      const key = veniceKey.trim() || undefined;
       const r = await api.testVeniceConnection(key, veniceModel);
       setVeniceTestResult(r);
     } catch (e: any) {
@@ -114,11 +113,7 @@ function ConnectionsTab() {
     setGeneratingVideo(true);
     setGenerateResult(null);
     try {
-      const key = veniceKey.trim();
-      if (!key) {
-        setGenerateResult({ success: false, error: "Enter your Venice API key above" });
-        return;
-      }
+      const key = veniceKey.trim() || undefined;
       const r = await api.generateTestVideo(key, veniceModel);
       setGenerateResult(r);
     } catch (e: any) {
