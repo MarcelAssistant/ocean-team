@@ -45,7 +45,7 @@ export default function Settings() {
 function ConnectionsTab() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("venice-uncensored");
+  const [model, setModel] = useState("gpt-4o-mini");
   const [tgToken, setTgToken] = useState("");
   const [veniceKey, setVeniceKey] = useState("");
   const [veniceModel, setVeniceModel] = useState("wan-2.5-preview-image-to-video");
@@ -103,7 +103,7 @@ function ConnectionsTab() {
                 <option value="gpt-4-turbo">gpt-4-turbo (OpenAI)</option>
               </optgroup>
             </select>
-            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Default model for new agents. Ocean (main agent) uses Venice — set Venice API key below.</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Default model for new agents. gpt-4o-mini supports tools. Venice key enables uncensored fallback when OpenAI refuses.</p>
           </div>
           <div className="flex gap-2 items-center">
             <Btn onClick={async () => { setTesting(true); try { setTestResult(await api.testConnection(model)); } catch (e:any) { setTestResult({ success: false, error: e.message }); } finally { setTesting(false); } }} disabled={testing}>{testing ? "..." : "Test"}</Btn>
@@ -128,7 +128,7 @@ function ConnectionsTab() {
         <div className="space-y-3">
           <div><Label>Venice API Key</Label><Input type="password" value={veniceKey} onChange={(e) => setVeniceKey(e.target.value)} placeholder={settings.venice_api_key ? "••••••••" : "From venice.ai → Settings → API"} /></div>
           <div><Label>Default video model</Label><Input value={veniceModel} onChange={(e) => setVeniceModel(e.target.value)} placeholder="wan-2.5-preview-image-to-video" /></div>
-          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Required for all agents (uncensored). Also used for character image analysis (vision) and video generation.</p>
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Fallback when OpenAI refuses content. Also used for character image analysis and video generation.</p>
         </div>
       </Card>
 

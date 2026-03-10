@@ -92,7 +92,7 @@ export async function moduleRoutes(app: FastifyInstance) {
               role: agentDef.role || "",
               mission: agentDef.mission || "",
               systemPrompt: agentDef.systemPrompt || "You are a helpful assistant.",
-              model: agentDef.model || "venice-uncensored",
+              model: agentDef.model || "gpt-4o-mini",
               temperature: agentDef.temperature ?? 0.7,
               maxTokens: agentDef.maxTokens ?? 2048,
               enabled: true,

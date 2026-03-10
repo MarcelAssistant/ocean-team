@@ -228,7 +228,7 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
         role,
         mission,
         systemPrompt: String(args.systemPrompt || `You are ${name}, a ${role}. Your mission: ${mission}. Be helpful, structured, and thorough.`),
-        model: "venice-uncensored",
+        model: "gpt-4o-mini",
         temperature: 0.7,
         maxTokens: 2048,
         enabled: true,

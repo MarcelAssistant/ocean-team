@@ -69,9 +69,11 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
     })),
   ];
 
-  const client = useVenice
+  let client = useVenice
     ? new OpenAI({ apiKey: apiKeySetting.value, baseURL: "https://api.venice.ai/api/v1" })
     : new OpenAI({ apiKey: apiKeySetting.value });
+
+  const veniceKeySetting = useVenice ? null : await prisma.setting.findUnique({ where: { key: "venice_api_key" } });
 
   try {
     let finalContent = "";
@@ -79,34 +81,50 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
     let round = 0;
     let usedTools = tools;
     let retriedWithoutTools = false;
+    let usedVeniceFallback = false;
 
     // Tool-call loop: keep going while the model wants to call tools
     while (round < MAX_TOOL_ROUNDS) {
       round++;
 
       let completion;
+      const modelToUse = usedVeniceFallback ? "venice-uncensored" : agent.model;
       try {
         completion = await client.chat.completions.create({
-          model: agent.model,
+          model: modelToUse,
           messages: apiMessages,
           temperature: agent.temperature,
           max_tokens: agent.maxTokens,
           ...(usedTools.length > 0 ? { tools: usedTools } : {}),
         });
       } catch (err: any) {
-        // Some Venice models (e.g. venice-uncensored/Dolphin Mistral) don't support tools — retry without
-        if (err?.status === 400 && usedTools.length > 0 && !retriedWithoutTools) {
+        const errMsg = (err?.message || err?.error?.message || "").toLowerCase();
+        const isContentPolicy = errMsg.includes("content") && (errMsg.includes("policy") || errMsg.includes("filter") || errMsg.includes("refuse"));
+        const is400 = err?.status === 400;
+
+        // Venice models don't support tools — retry without
+        if (is400 && usedTools.length > 0 && !retriedWithoutTools && useVenice) {
           retriedWithoutTools = true;
           usedTools = [];
           round--;
           continue;
         }
+
+        // OpenAI content policy — fall back to Venice (uncensored) without tools
+        if (!useVenice && veniceKeySetting?.value && (isContentPolicy || is400) && !usedVeniceFallback) {
+          usedVeniceFallback = true;
+          client = new OpenAI({ apiKey: veniceKeySetting.value, baseURL: "https://api.venice.ai/api/v1" });
+          usedTools = [];
+          round = 0;
+          continue;
+        }
+
         throw err;
       }
 
       // Track API usage
       if (completion.usage) {
-        trackUsage(agent.model, completion.usage.prompt_tokens, completion.usage.completion_tokens).catch(() => {});
+        trackUsage(modelToUse, completion.usage.prompt_tokens, completion.usage.completion_tokens).catch(() => {});
       }
 
       const choice = completion.choices[0];
@@ -173,7 +191,10 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
       finalContent += `\n\n---\n**Actions taken:**\n${logBlock}`;
     }
     if (retriedWithoutTools && tools.length > 0) {
-      finalContent += `\n\n---\n*Note: This model doesn't support tool calling — responding in text only. For full orchestration (tickets, assignments), use llama-3.3-70b.*`;
+      finalContent += `\n\n---\n*Note: This model doesn't support tool calling — responding in text only.*`;
+    }
+    if (usedVeniceFallback) {
+      finalContent += `\n\n---\n*Note: Switched to Venice (uncensored) for this response — tools were not used.*`;
     }
 
     const assistantMsg = await prisma.message.create({

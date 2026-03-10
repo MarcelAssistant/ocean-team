@@ -141,7 +141,7 @@ export default function Onboarding({ onComplete }: Props) {
 
               <div className="rounded-lg p-4 border text-left" style={{ borderColor: "var(--border)", background: "var(--bg-input)" }}>
                 <p className="text-xs font-medium mb-2" style={{ color: "var(--text-primary)" }}>First step</p>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Go to <strong>Settings</strong> and add your <strong>Venice API key</strong>. Without it, {assistantName || "Ocean"} can't orchestrate your agents.</p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Go to <strong>Settings</strong> and add your <strong>OpenAI API key</strong>. Add Venice key too for uncensored fallback when needed.</p>
               </div>
 
               <div className="rounded-lg p-4 border text-left" style={{ borderColor: "var(--border)", background: "var(--bg-input)" }}>

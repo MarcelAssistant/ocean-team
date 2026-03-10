@@ -65,7 +65,7 @@ function groupByModel(records: any[]) {
 }
 
 export function estimateCost(model: string, promptTokens: number, completionTokens: number): number {
-  const rates = MODEL_COSTS[model] || MODEL_COSTS["venice-uncensored"];
+  const rates = MODEL_COSTS[model] || MODEL_COSTS["gpt-4o-mini"];
   return promptTokens * rates.input + completionTokens * rates.output;
 }
 
