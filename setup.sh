@@ -304,21 +304,22 @@ echo ""
 step "Prisma"
 info "Generating Prisma client..."
 cd "$SCRIPT_DIR/backend"
+export DATABASE_URL="file:$DATA_DIR/zeus.db"
 npx prisma generate
 echo ""
 
 if [ ! -f "$DATA_DIR/zeus.db" ]; then
   info "No database found — running migration..."
-  npx prisma migrate dev --name init --schema prisma/schema.prisma
+  DATABASE_URL="file:$DATA_DIR/zeus.db" npx prisma migrate dev --name init --schema prisma/schema.prisma
   echo ""
   info "Seeding default data..."
   cd "$SCRIPT_DIR"
-  pnpm seed
+  DATABASE_URL="file:$DATA_DIR/zeus.db" pnpm seed
 else
   pass "Database exists ($DATA_DIR/zeus.db)"
 
   info "Applying pending migrations (if any)..."
-  npx prisma migrate deploy --schema prisma/schema.prisma 2>/dev/null || true
+  DATABASE_URL="file:$DATA_DIR/zeus.db" npx prisma migrate deploy --schema prisma/schema.prisma 2>/dev/null || true
 fi
 
 step "Frontend Build"
