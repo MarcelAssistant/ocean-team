@@ -343,7 +343,7 @@ echo "  Check only:         bash setup.sh --check"
 echo ""
 if [[ -n "$VM_IP" ]]; then
   echo -e "  ${CYAN}Your VM IP:${NC}  ${BOLD}${VM_IP}${NC}"
-  echo -e "  ${CYAN}Access URL:${NC}  ${BOLD}http://${VM_IP}:3000${NC}"
+  echo -e "  ${CYAN}Access URL:${NC}  ${BOLD}http://${VM_IP}:${PORT:-3000}${NC}"
   echo ""
   echo "  On first launch, the UI will ask you to set a password"
   echo "  and confirm the IP address. After that, use the URL above"

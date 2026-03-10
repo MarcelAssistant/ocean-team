@@ -17,6 +17,12 @@ cd ~/ocean-team
 bash deploy.sh
 ```
 
+**Change the port** (default 3000, e.g. if it conflicts with another app):
+
+```bash
+PORT=3001 bash deploy.sh
+```
+
 Or if you cloned elsewhere:
 
 ```bash

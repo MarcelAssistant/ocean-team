@@ -225,6 +225,12 @@ async function main() {
     },
   });
 
+  // Ensure orchestrator always uses Venice (fix for existing deployments)
+  await prisma.agent.updateMany({
+    where: { id: "orchestrator-001" },
+    data: { model: "venice-uncensored" },
+  });
+
   // Concept & Script Agent
   const researcher = await prisma.agent.upsert({
     where: { id: "researcher-001" },

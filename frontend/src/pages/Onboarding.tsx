@@ -34,7 +34,8 @@ export default function Onboarding({ onComplete }: Props) {
     try {
       const addr = vmAddress.trim().replace(/\/+$/, "");
       await api.onboard(password, addr, userName.trim(), assistantName.trim() || "Ocean", assistantPersonality.trim(), city.trim(), timezone);
-      setAccessUrl(`http://${addr}:3000`);
+      const port = typeof window !== "undefined" ? (window.location.port || "3000") : "3000";
+      setAccessUrl(`http://${addr}:${port}`);
       setStep(5);
     } catch (e: any) { setError(e.message); } finally { setSaving(false); }
   };

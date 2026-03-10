@@ -4,6 +4,7 @@ set -euo pipefail
 CYAN='\033[0;36m'; GREEN='\033[0;32m'; BOLD='\033[1m'; NC='\033[0m'
 
 ZEUS_DIR="$(cd "$(dirname "$0")" && pwd)"
+PORT="${PORT:-3000}"
 
 echo ""
 echo -e "${BOLD}${CYAN}⚡ ZEUS — Deploy${NC}"
@@ -37,7 +38,7 @@ Type=simple
 WorkingDirectory=$ZEUS_DIR/backend
 Environment=NODE_ENV=production
 Environment=DATABASE_URL=file:../../data/zeus.db
-Environment=PORT=3000
+Environment=PORT=$PORT
 Environment=PATH=$(dirname $NODE_BIN):$(dirname $PNPM_BIN):/usr/local/bin:/usr/bin:/bin
 ExecStart=$NODE_BIN $(dirname $PNPM_BIN)/npx tsx src/index.ts
 Restart=always
@@ -66,7 +67,7 @@ if sudo systemctl is-active --quiet zeus; then
   echo ""
   echo -e "  ${BOLD}Share this link:${NC}"
   echo ""
-  echo -e "  ${CYAN}${BOLD}http://${VM_IP}:3000${NC}"
+  echo -e "  ${CYAN}${BOLD}http://${VM_IP}:${PORT}${NC}"
   echo ""
   echo "  First-time visitors will set up their password"
   echo "  and name their assistant."

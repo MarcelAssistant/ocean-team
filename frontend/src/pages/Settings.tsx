@@ -100,7 +100,7 @@ function ConnectionsTab() {
                 <option value="gpt-4-turbo">gpt-4-turbo (OpenAI)</option>
               </optgroup>
             </select>
-            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Standard models for normal work; higher models cost more.</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Default model for new agents. Ocean (main agent) uses Venice — set Venice API key below.</p>
           </div>
           <div className="flex gap-2 items-center">
             <Btn onClick={async () => { setTesting(true); try { setTestResult(await api.testConnection(model)); } catch (e:any) { setTestResult({ success: false, error: e.message }); } finally { setTesting(false); } }} disabled={testing}>{testing ? "..." : "Test"}</Btn>
@@ -125,7 +125,7 @@ function ConnectionsTab() {
         <div className="space-y-3">
           <div><Label>Venice API Key</Label><Input type="password" value={veniceKey} onChange={(e) => setVeniceKey(e.target.value)} placeholder={settings.venice_api_key ? "••••••••" : "From venice.ai → Settings → API"} /></div>
           <div><Label>Default video model</Label><Input value={veniceModel} onChange={(e) => setVeniceModel(e.target.value)} placeholder="wan-2.5-preview-image-to-video" /></div>
-          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Used by the Production Agent for video_render_request when tool is &quot;venice&quot;.</p>
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Required for Ocean (main agent) and video generation. Add key here, then Ocean will use Venice.</p>
         </div>
       </Card>
 
@@ -389,8 +389,8 @@ function AccessTab() {
           <Btn onClick={async () => { await api.updateVmAddress(vm); }}>Save</Btn>
         </div>
         {vm && (
-          <a href={`http://${vm}:3000`} target="_blank" rel="noopener" className="text-sm font-mono" style={{ color: "var(--accent)" }}>
-            http://{vm}:3000
+          <a href={`http://${vm}:${typeof window !== "undefined" ? (window.location.port || "3000") : "3000"}`} target="_blank" rel="noopener" className="text-sm font-mono" style={{ color: "var(--accent)" }}>
+            http://{vm}:{typeof window !== "undefined" ? (window.location.port || "3000") : "3000"}
           </a>
         )}
       </Card>
