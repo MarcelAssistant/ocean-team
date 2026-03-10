@@ -1,4 +1,15 @@
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { PrismaClient } from "@prisma/client";
+
+// Ensure DATABASE_URL is set and data dir exists (seed can run without env)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+if (!process.env.DATABASE_URL) {
+  const dataDir = path.resolve(__dirname, "../../data");
+  fs.mkdirSync(dataDir, { recursive: true });
+  process.env.DATABASE_URL = `file:${path.join(dataDir, "zeus.db")}`;
+}
 
 const prisma = new PrismaClient();
 
