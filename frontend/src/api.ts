@@ -51,9 +51,11 @@ export const api = {
   addMemory: (agentId: string, data: any) => request<any>(`/agents/${agentId}/memory`, { method: "POST", body: JSON.stringify(data) }),
 
   getTickets: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return request<any[]>(`/tickets${qs}`); },
+  getTicketsBoard: () => request<{ tickets: any[]; byProject: Record<string, any[]> }>("/tickets/board"),
   createTicket: (data: any) => request<any>("/tickets", { method: "POST", body: JSON.stringify(data) }),
   updateTicket: (id: string, data: any) => request<any>(`/tickets/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteTicket: (id: string) => request<any>(`/tickets/${id}`, { method: "DELETE" }),
+  splitTicket: (id: string) => request<any>(`/tickets/${id}/split`, { method: "POST" }),
   processTicket: () => request<any>("/tickets/process", { method: "POST" }),
 
   getSkills: () => request<any[]>("/skills"),

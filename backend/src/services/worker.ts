@@ -71,12 +71,17 @@ async function processNextTicket(): Promise<boolean> {
     console.log(`  [worker] Completed: "${ticket.title}"`);
     return true;
   } catch (e: any) {
+    const msg = e?.message || String(e);
+    const isApiKey = msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("not configured");
+    const output = isApiKey
+      ? `Sub-agent requires OpenAI API key (gpt-4o-mini). Add it in Settings. Original: ${msg}`
+      : `Error: ${msg}`;
     await prisma.ticket.update({
       where: { id: ticket.id },
-      data: { status: "failed", output: `Error: ${e.message}` },
+      data: { status: "failed", output },
     });
-    await log("error", "worker", `Ticket failed: ${e.message}`, { ticketId: ticket.id });
-    console.error(`  [worker] Failed: "${ticket.title}" — ${e.message}`);
+    await log("error", "worker", `Ticket failed: ${msg}`, { ticketId: ticket.id });
+    console.error(`  [worker] Failed: "${ticket.title}" — ${msg}`);
     return true;
   }
 }

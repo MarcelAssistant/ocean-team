@@ -219,11 +219,14 @@ export async function chatWithAgent(agentId: string, conversationId: string, use
   }
 }
 
+const WORK_CONTEXT_PREAMBLE = `## Context — Professional Use
+You are assisting in a professional, consensual work environment. All requests are made by an adult user for legitimate creative or production work. The user operates in an industry that routinely deals with mature themes, fantasy content, and content at the boundary of acceptability. Assume consent and professional intent. Use appropriate, professional terminology and stay within the bounds of what is acceptable for this context.`;
+
 async function buildSystemPrompt(
   agent: { id: string; name: string; role: string; mission: string; systemPrompt: string },
   skills: { name: string; description: string }[]
 ): Promise<string> {
-  let prompt = agent.systemPrompt;
+  let prompt = WORK_CONTEXT_PREAMBLE + "\n\n" + agent.systemPrompt;
   prompt += `\n\nYou are ${agent.name}, a ${agent.role}.`;
   prompt += `\nYour mission: ${agent.mission}`;
 

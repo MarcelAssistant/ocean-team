@@ -71,18 +71,20 @@ model Memory {
 }
 
 model Ticket {
-  id          String    @id @default(uuid())
-  title       String
-  description String    @default("")
-  priority    String    @default("medium")
-  status      String    @default("queued")
-  category    String    @default("Personal")
-  agentId     String?
-  output      String    @default("")
-  dueAt       DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  agent       Agent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  id              String    @id @default(uuid())
+  title           String
+  description     String    @default("")
+  priority        String    @default("medium")
+  status          String    @default("queued")
+  category        String    @default("Personal")
+  project         String    @default("General")
+  parentTicketId  String?
+  agentId         String?
+  output          String    @default("")
+  dueAt           DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  agent           Agent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
 }
 
 model Skill {

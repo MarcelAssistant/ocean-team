@@ -133,6 +133,30 @@ const BUILTIN_TASKS: Record<string, () => Promise<string>> = {
     const count = await pruneMemories();
     return count > 0 ? `Pruned ${count} old memories` : "No memories to prune";
   },
+
+  split_large_tickets: async () => {
+    const { splitTicketIntoStories } = await import("./split-ticket.js");
+    const large = await prisma.ticket.findMany({
+      where: {
+        status: "queued",
+        parentTicketId: null,
+        description: { not: "" },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    });
+    let split = 0;
+    for (const t of large) {
+      if ((t.description?.length || 0) < 200) continue;
+      try {
+        const { created } = await splitTicketIntoStories(t.id);
+        split += created;
+      } catch {
+        // Skip if split fails (e.g. already split)
+      }
+    }
+    return split > 0 ? `Split ${split} ticket(s) into stories` : "No large tickets to split";
+  },
 };
 
 async function runTask(task: any): Promise<void> {

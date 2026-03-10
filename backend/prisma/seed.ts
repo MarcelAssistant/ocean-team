@@ -56,13 +56,15 @@ async function main() {
   const skills = {
     summarize_text: await upsertSkill("summarize_text", "Summarize a given text into key points",
       { text: { type: "string", description: "Text to summarize" } }, ["text"]),
-    create_ticket: await upsertSkill("create_ticket", "Create a new task. Set priority, category, and optional due date.",
-      { title: { type: "string" }, description: { type: "string" }, priority: { type: "string", enum: ["low", "medium", "high", "critical"] }, category: { type: "string", enum: ["Work", "Personal", "School", "Travel", "Health", "Finance"], description: "Life area this task belongs to" }, dueAt: { type: "string", description: "ISO date-time for when this is due" } }, ["title"]),
+    create_ticket: await upsertSkill("create_ticket", "Create a new task. Set priority, category, project, and optional due date.",
+      { title: { type: "string" }, description: { type: "string" }, priority: { type: "string", enum: ["low", "medium", "high", "critical"] }, category: { type: "string", enum: ["Work", "Personal", "School", "Travel", "Health", "Finance"] }, project: { type: "string", description: "Project name for board grouping" }, parentTicketId: { type: "string", description: "Parent ticket ID if this is a story" }, dueAt: { type: "string", description: "ISO date-time for when this is due" } }, ["title"]),
     assign_ticket: await upsertSkill("assign_ticket", "Assign a ticket to an agent by their ID.",
       { ticketId: { type: "string" }, agentId: { type: "string" } }, ["ticketId", "agentId"]),
     list_agents: await upsertSkill("list_agents", "List all available agents with their IDs, roles, and missions.", {}),
     list_tickets: await upsertSkill("list_tickets", "List current tickets, optionally filtered by status.",
       { status: { type: "string", enum: ["queued", "in_progress", "done", "failed"] } }),
+    split_ticket_into_stories: await upsertSkill("split_ticket_into_stories", "Split a large ticket into 3–5 smaller agile stories for parallel work. Use when a task is too big.",
+      { ticketId: { type: "string", description: "ID of the ticket to split" } }, ["ticketId"]),
     read_emails: await upsertSkill("read_emails", "Read recent emails from the inbox.",
       { limit: { type: "number", description: "Max emails to return" }, unreadOnly: { type: "boolean" } }),
     send_email: await upsertSkill("send_email", "Send an email to a recipient.",
@@ -330,6 +332,7 @@ async function main() {
     [orchestrator.id, skills.assign_ticket.id],
     [orchestrator.id, skills.list_agents.id],
     [orchestrator.id, skills.list_tickets.id],
+    [orchestrator.id, skills.split_ticket_into_stories.id],
     [orchestrator.id, skills.read_emails.id],
     [orchestrator.id, skills.send_email.id],
     [orchestrator.id, skills.create_automation.id],
@@ -382,6 +385,7 @@ async function main() {
     { name: "reminder_check", description: "Check for due reminders and notify the user", intervalMin: 1, agentId: systemAgent.id, taskType: "system" },
     { name: "daily_digest", description: "Generate daily activity summary", intervalMin: 1440, agentId: systemAgent.id, taskType: "system" },
     { name: "auto_backup", description: "Create daily database backup (keep last 7)", intervalMin: 1440, agentId: systemAgent.id, taskType: "system" },
+    { name: "split_large_tickets", description: "Auto-split large tickets (200+ chars) into smaller agile stories for parallel work", intervalMin: 60, agentId: systemAgent.id, taskType: "system" },
   ];
 
   for (const t of tasks) {

@@ -19,22 +19,24 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
     const description = String(args.description || "");
     const priority = String(args.priority || "medium");
     const category = String(args.category || "Personal");
+    const project = String(args.project || args.category || "General");
+    const parentTicketId = args.parentTicketId ? String(args.parentTicketId) : null;
     const agentId = args.agentId ? String(args.agentId) : null;
     const dueAt = args.dueAt ? new Date(String(args.dueAt)) : null;
 
     const ticket = await prisma.ticket.create({
-      data: { title, description, priority, category, status: "queued", agentId, output: "", dueAt },
+      data: { title, description, priority, category, project, parentTicketId, status: "queued", agentId, output: "", dueAt },
     });
 
     await log("info", "skill:create_ticket", `Task created: "${title}" [${ticket.id}]`, {
-      ticketId: ticket.id, priority,
+      ticketId: ticket.id, priority, project,
     });
 
     const dueStr = dueAt ? `, due ${dueAt.toLocaleDateString()}` : "";
     return {
       success: true,
-      data: { ticketId: ticket.id, title, priority, category, status: "queued" },
-      message: `Task "${title}" created (${category}, priority: ${priority}${dueStr}).`,
+      data: { ticketId: ticket.id, title, priority, category, project, status: "queued" },
+      message: `Task "${title}" created (${project}, priority: ${priority}${dueStr}).`,
     };
   },
 
@@ -283,6 +285,22 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
       data: { tickets: tickets.map((t) => ({ id: t.id, title: t.title, status: t.status, agent: t.agent?.name })) },
       message: `Tickets:\n${tickets.map((t) => `  - [${t.status}] "${t.title}" (ID: ${t.id}, agent: ${t.agent?.name || "unassigned"})`).join("\n")}`,
     };
+  },
+
+  split_ticket_into_stories: async (args) => {
+    const ticketId = String(args.ticketId || "");
+    if (!ticketId) return { success: false, data: {}, message: "ticketId is required." };
+    try {
+      const { splitTicketIntoStories } = await import("./split-ticket.js");
+      const { created, storyIds } = await splitTicketIntoStories(ticketId);
+      return {
+        success: true,
+        data: { ticketId, created, storyIds },
+        message: `Split ticket into ${created} smaller stories for agile/parallel work. Story IDs: ${storyIds.join(", ")}`,
+      };
+    } catch (e: any) {
+      return { success: false, data: {}, message: e.message || "Failed to split ticket." };
+    }
   },
 
   character_create: async (args) => {

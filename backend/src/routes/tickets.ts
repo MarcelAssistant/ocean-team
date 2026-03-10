@@ -5,15 +5,30 @@ import { log } from "../logger.js";
 
 export async function ticketRoutes(app: FastifyInstance) {
   app.get("/api/tickets", async (req) => {
-    const query = req.query as { status?: string; agentId?: string };
+    const query = req.query as { status?: string; agentId?: string; project?: string };
     const where: any = {};
     if (query.status) where.status = query.status;
     if (query.agentId) where.agentId = query.agentId;
+    if (query.project) where.project = query.project;
     return prisma.ticket.findMany({
       where,
       include: { agent: true },
       orderBy: { createdAt: "desc" },
     });
+  });
+
+  app.get("/api/tickets/board", async () => {
+    const tickets = await prisma.ticket.findMany({
+      include: { agent: true },
+      orderBy: { createdAt: "desc" },
+    });
+    const byProject = tickets.reduce((acc: Record<string, any[]>, t) => {
+      const p = (t as any).project || t.category || "General";
+      if (!acc[p]) acc[p] = [];
+      acc[p].push(t);
+      return acc;
+    }, {});
+    return { tickets, byProject };
   });
 
   app.get("/api/tickets/:id", async (req) => {
@@ -32,6 +47,8 @@ export async function ticketRoutes(app: FastifyInstance) {
         description: body.description || "",
         priority: body.priority || "medium",
         category: body.category || "Personal",
+        project: body.project || body.category || "General",
+        parentTicketId: body.parentTicketId || null,
         status: body.status || "queued",
         agentId: body.agentId || null,
         dueAt: body.dueAt ? new Date(body.dueAt) : null,
@@ -51,6 +68,7 @@ export async function ticketRoutes(app: FastifyInstance) {
     if (body.agentId !== undefined) data.agentId = body.agentId;
     if (body.output !== undefined) data.output = body.output;
     if (body.category !== undefined) data.category = body.category;
+    if (body.project !== undefined) data.project = body.project;
     if (body.dueAt !== undefined) data.dueAt = body.dueAt ? new Date(body.dueAt) : null;
     return prisma.ticket.update({ where: { id }, data });
   });
@@ -59,6 +77,17 @@ export async function ticketRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     await prisma.ticket.delete({ where: { id } });
     return { success: true };
+  });
+
+  app.post("/api/tickets/:id/split", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    try {
+      const { splitTicketIntoStories } = await import("../services/split-ticket.js");
+      const { created, storyIds } = await splitTicketIntoStories(id);
+      return { success: true, created, storyIds };
+    } catch (e: any) {
+      return reply.status(400).send({ success: false, error: e.message });
+    }
   });
 
   app.post("/api/tickets/process", async () => {
