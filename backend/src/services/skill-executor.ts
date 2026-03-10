@@ -24,8 +24,9 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
     const agentId = args.agentId ? String(args.agentId) : null;
     const dueAt = args.dueAt ? new Date(String(args.dueAt)) : null;
 
+    const initialStatus = agentId ? "ready" : "created";
     const ticket = await prisma.ticket.create({
-      data: { title, description, priority, category, project, parentTicketId, status: "queued", agentId, output: "", dueAt },
+      data: { title, description, priority, category, project, parentTicketId, status: initialStatus, agentId, output: "", dueAt },
     });
 
     await log("info", "skill:create_ticket", `Task created: "${title}" [${ticket.id}]`, {
@@ -35,7 +36,7 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
     const dueStr = dueAt ? `, due ${dueAt.toLocaleDateString()}` : "";
     return {
       success: true,
-      data: { ticketId: ticket.id, title, priority, category, project, status: "queued" },
+      data: { ticketId: ticket.id, title, priority, category, project, status: initialStatus },
       message: `Task "${title}" created (${project}, priority: ${priority}${dueStr}).`,
     };
   },
@@ -58,7 +59,8 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
       return { success: false, data: {}, message: `Agent ${agentId} not found.` };
     }
 
-    await prisma.ticket.update({ where: { id: ticketId }, data: { agentId } });
+    const newStatus = ["created", "queued"].includes(ticket.status) ? "ready" : ticket.status;
+    await prisma.ticket.update({ where: { id: ticketId }, data: { agentId, status: newStatus } });
     await log("info", "skill:assign_ticket", `Ticket "${ticket.title}" assigned to ${agent.name}`, {
       ticketId, agentId,
     });
@@ -67,6 +69,31 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
       success: true,
       data: { ticketId, agentId, agentName: agent.name },
       message: `Ticket "${ticket.title}" assigned to agent "${agent.name}".`,
+    };
+  },
+
+  cancel_ticket: async (args) => {
+    const ticketId = String(args.ticketId || "");
+    if (!ticketId) return { success: false, data: {}, message: "ticketId is required." };
+
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) return { success: false, data: {}, message: `Ticket ${ticketId} not found.` };
+
+    const cancellable = ["created", "ready", "queued", "blocked"];
+    if (!cancellable.includes(ticket.status)) {
+      return {
+        success: false,
+        data: {},
+        message: `Cannot cancel ticket in status "${ticket.status}". Only created/ready/blocked tickets can be cancelled.`,
+      };
+    }
+
+    await prisma.ticket.update({ where: { id: ticketId }, data: { status: "cancel" } });
+    await log("info", "skill:cancel_ticket", `Ticket "${ticket.title}" cancelled`, { ticketId });
+    return {
+      success: true,
+      data: { ticketId },
+      message: `Ticket "${ticket.title}" has been cancelled.`,
     };
   },
 
@@ -273,7 +300,7 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
       where,
       include: { agent: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
-      take: 20,
+      take: 50,
     });
 
     if (tickets.length === 0) {

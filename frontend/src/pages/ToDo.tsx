@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api";
 import { Card, PageTitle, Btn, Badge, Input, Select, TextArea, EmptyState, Label } from "../components/ui";
 
@@ -6,28 +7,22 @@ const PRI_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low
 const PRI_COLOR: Record<string, string> = { critical: "var(--accent)", high: "#f87171", medium: "var(--text-secondary)", low: "var(--text-muted)" };
 const CATEGORIES = ["All", "Work", "Personal", "School", "Travel", "Health", "Finance"];
 const CAT_COLORS: Record<string, string> = { Work: "#60a5fa", Personal: "#a78bfa", School: "#34d399", Travel: "#fbbf24", Health: "#f87171", Finance: "#2dd4bf" };
-const COLUMNS = [
-  { key: "queued", label: "To Do" },
-  { key: "in_progress", label: "In Progress" },
-  { key: "done", label: "Done" },
-];
+const LEGACY_STATUS = { queued: "ready", done: "finished" };
 
 export default function ToDo() {
   const [tasks, setTasks] = useState<any[]>([]);
-  const [boardData, setBoardData] = useState<{ tickets: any[]; byProject: Record<string, any[]> } | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [showAdd, setShowAdd] = useState(false);
   const [statusFilter, setStatusFilter] = useState("active");
   const [catFilter, setCatFilter] = useState("All");
-  const [projectFilter, setProjectFilter] = useState("All");
   const [form, setForm] = useState({ title: "", description: "", priority: "medium", category: "Personal", project: "General", dueAt: "" });
   const [splitting, setSplitting] = useState<string | null>(null);
 
+  const norm = (s: string) => (LEGACY_STATUS as any)[s] || s;
   const load = () => {
     api.getTickets({}).then((t) => {
       let filtered = t;
-      if (statusFilter === "active") filtered = filtered.filter((x: any) => x.status !== "done");
-      else if (statusFilter !== "all") filtered = filtered.filter((x: any) => x.status === statusFilter);
+      if (statusFilter === "active") filtered = filtered.filter((x: any) => !["finished", "done", "cancel"].includes(x.status));
+      else if (statusFilter !== "all") filtered = filtered.filter((x: any) => norm(x.status) === statusFilter);
       if (catFilter !== "All") filtered = filtered.filter((x: any) => x.category === catFilter);
       filtered.sort((a: any, b: any) => {
         const pa = PRI_ORDER[a.priority] ?? 2;
@@ -47,7 +42,6 @@ export default function ToDo() {
   };
 
   useEffect(() => { load(); }, [statusFilter, catFilter]);
-  useEffect(() => { if (viewMode === "board") loadBoard(); else loadBoard(); }, [viewMode]);
 
   const create = async () => {
     if (!form.title.trim()) return;
@@ -55,21 +49,18 @@ export default function ToDo() {
     setForm({ title: "", description: "", priority: "medium", category: form.category, project: form.project || "General", dueAt: "" });
     setShowAdd(false);
     load();
-    loadBoard();
   };
 
-  const markDone = async (id: string) => { await api.updateTicket(id, { status: "done" }); load(); loadBoard(); };
-  const reopen = async (id: string) => { await api.updateTicket(id, { status: "queued" }); load(); loadBoard(); };
-  const setInProgress = async (id: string) => { await api.updateTicket(id, { status: "in_progress" }); load(); loadBoard(); };
-  const remove = async (id: string) => { if (confirm("Delete?")) { await api.deleteTicket(id); load(); loadBoard(); } };
-  const isOverdue = (t: any) => t.dueAt && new Date(t.dueAt) < new Date() && t.status !== "done";
+  const markDone = async (id: string) => { await api.updateTicket(id, { status: "finished" }); load(); };
+  const reopen = async (id: string) => { await api.updateTicket(id, { status: "ready" }); load(); };
+  const remove = async (id: string) => { if (confirm("Delete?")) { await api.deleteTicket(id); load(); } };
+  const isOverdue = (t: any) => t.dueAt && new Date(t.dueAt) < new Date() && !["finished", "done", "cancel"].includes(t.status);
 
   const splitTicket = async (id: string) => {
     setSplitting(id);
     try {
       await api.splitTicket(id);
       load();
-      loadBoard();
     } catch (e: any) {
       alert(e.message || "Split failed");
     } finally {
@@ -77,83 +68,19 @@ export default function ToDo() {
     }
   };
 
-  const updateStatus = async (id: string, status: string) => {
-    await api.updateTicket(id, { status });
-    load();
-    loadBoard();
-  };
-
-  // Count by category for badges
   const [allTasks, setAllTasks] = useState<any[]>([]);
   useEffect(() => { api.getTickets({}).then(setAllTasks); }, []);
   const catCount = (cat: string) => {
-    const active = allTasks.filter((t) => t.status !== "done");
+    const active = allTasks.filter((t) => !["finished", "done", "cancel"].includes(t.status));
     return cat === "All" ? active.length : active.filter((t) => t.category === cat).length;
   };
-
-  const projects = boardData ? Object.keys(boardData.byProject || {}).sort() : [];
-  const boardTickets = (boardData?.tickets || []).filter((t: any) => projectFilter === "All" || (t.project || "General") === projectFilter);
-
-  const TicketCard = ({ t, onStatusChange }: { t: any; onStatusChange?: (s: string) => void }) => (
-    <div
-      key={t.id}
-      className="group rounded-lg border px-3 py-2 mb-2 transition-colors hover:border-[var(--border-hover)]"
-      style={{ background: "var(--bg-card)", borderColor: isOverdue(t) ? "rgba(239,68,68,0.3)" : "var(--border)" }}
-    >
-      <div className="flex items-start gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={`text-sm font-medium ${t.status === "done" ? "line-through" : ""}`}
-              style={{ color: t.status === "done" ? "var(--text-muted)" : "var(--text-primary)" }}>
-              {t.title}
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: PRI_COLOR[t.priority] }} title={t.priority} />
-            {t.category && t.category !== "Personal" && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: `${CAT_COLORS[t.category] || "var(--text-muted)"}15`, color: CAT_COLORS[t.category] || "var(--text-muted)" }}>
-                {t.category}
-              </span>
-            )}
-            {t.status === "in_progress" && <Badge color="amber">working</Badge>}
-          </div>
-          {t.description && <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--text-muted)" }}>{t.description}</p>}
-          <div className="flex gap-2 mt-1 text-[10px]" style={{ color: "var(--text-muted)" }}>
-            {t.dueAt && <span style={{ color: isOverdue(t) ? "#f87171" : undefined }}>{new Date(t.dueAt).toLocaleDateString([], { month: "short", day: "numeric" })}</span>}
-            {t.agent?.name && <span>{t.agent.name}</span>}
-          </div>
-        </div>
-        <div className="flex flex-col gap-0.5 shrink-0">
-          {onStatusChange && (
-            t.status === "queued" ? (
-              <button onClick={() => onStatusChange("in_progress")} className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "var(--accent-bg)", color: "var(--accent)" }}>Start</button>
-            ) : t.status === "in_progress" ? (
-              <button onClick={() => onStatusChange("done")} className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "var(--accent-bg)", color: "var(--accent)" }}>✓ Done</button>
-            ) : null
-          )}
-          {!t.parentTicketId && (t.description?.length || 0) >= 100 && (
-            <button onClick={() => splitTicket(t.id)} disabled={splitting === t.id} className="text-[9px] px-1.5 py-0.5 rounded opacity-60 hover:opacity-100" style={{ color: "var(--accent)" }} title="Split into stories">
-              {splitting === t.id ? "…" : "Split"}
-            </button>
-          )}
-          <button onClick={() => remove(t.id)} className="text-[9px] opacity-0 group-hover:opacity-50 hover:!opacity-100" style={{ color: "#f87171" }}>Del</button>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="max-w-6xl">
       <div className="flex items-center justify-between mb-5">
         <PageTitle>To Do</PageTitle>
-        <div className="flex gap-2">
-          <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: "var(--border)" }}>
-            {[["list", "List"], ["board", "Board"]].map(([k, label]) => (
-              <button key={k} onClick={() => setViewMode(k as any)}
-                className="px-3 py-1.5 text-xs font-medium transition-colors"
-                style={{ background: viewMode === k ? "var(--accent-bg)" : "transparent", color: viewMode === k ? "var(--accent)" : "var(--text-muted)" }}>
-                {label}
-              </button>
-            ))}
-          </div>
+        <div className="flex gap-2 items-center">
+          <Link to="/settings" state={{ tab: "projects" }} className="text-xs" style={{ color: "var(--accent)" }}>Jira board by project →</Link>
           <Btn variant="primary" onClick={() => setShowAdd(!showAdd)}>+ Add task</Btn>
         </div>
       </div>
@@ -179,29 +106,15 @@ export default function ToDo() {
         })}
       </div>
 
-      {viewMode === "list" && (
-        <>
-          {/* Status filter */}
-          <div className="flex gap-1.5 mb-4">
-            {[["active", "Active"], ["all", "All"], ["done", "Done"]].map(([k, label]) => (
-              <button key={k} onClick={() => setStatusFilter(k)} className="px-2.5 py-1 rounded-md text-[10px]"
-                style={{ background: statusFilter === k ? "var(--accent-bg)" : "transparent", color: statusFilter === k ? "var(--accent)" : "var(--text-muted)" }}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {viewMode === "board" && projects.length > 0 && (
-        <div className="flex gap-2 mb-4">
-          <span className="text-xs self-center" style={{ color: "var(--text-muted)" }}>Project:</span>
-          <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} className="text-xs px-2 py-1 rounded border" style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
-            <option value="All">All projects</option>
-            {projects.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </div>
-      )}
+      {/* Status filter */}
+      <div className="flex gap-1.5 mb-4">
+        {[["active", "Active"], ["all", "All"], ["finished", "Finished"]].map(([k, label]) => (
+          <button key={k} onClick={() => setStatusFilter(k)} className="px-2.5 py-1 rounded-md text-[10px]"
+            style={{ background: statusFilter === k ? "var(--accent-bg)" : "transparent", color: statusFilter === k ? "var(--accent)" : "var(--text-muted)" }}>
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* Quick add */}
       {showAdd && (
@@ -241,15 +154,15 @@ export default function ToDo() {
         </Card>
       )}
 
-      {viewMode === "list" && (
-        <div className="space-y-1.5">
+      <div className="space-y-1.5">
           {tasks.map((t) => (
             <div key={t.id} className="group flex items-start gap-3 rounded-lg border px-4 py-3 transition-colors hover:border-[var(--border-hover)]"
               style={{ background: "var(--bg-card)", borderColor: isOverdue(t) ? "rgba(239,68,68,0.3)" : "var(--border)" }}>
-              <button onClick={() => t.status === "done" ? reopen(t.id) : markDone(t.id)}
+              <button onClick={() => t.status !== "cancel" && (["finished", "done"].includes(t.status) ? reopen(t.id) : markDone(t.id))}
+                disabled={t.status === "cancel"}
                 className="mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors"
-                style={{ borderColor: t.status === "done" ? "#4ade80" : "var(--border)", background: t.status === "done" ? "#4ade80" : "transparent" }}>
-                {t.status === "done" && <svg viewBox="0 0 12 12" fill="none" className="w-2.5 h-2.5"><path d="M2 6l3 3 5-5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                style={{ borderColor: ["finished", "done"].includes(t.status) ? "#4ade80" : "var(--border)", background: ["finished", "done"].includes(t.status) ? "#4ade80" : "transparent" }}>
+                {["finished", "done"].includes(t.status) && <svg viewBox="0 0 12 12" fill="none" className="w-2.5 h-2.5"><path d="M2 6l3 3 5-5" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </button>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -257,7 +170,7 @@ export default function ToDo() {
                     style={{ color: t.status === "done" ? "var(--text-muted)" : "var(--text-primary)" }}>
                     {t.title}
                   </span>
-                  {t.status !== "done" && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: PRI_COLOR[t.priority] }} title={t.priority} />}
+                  {!["finished", "done", "cancel"].includes(t.status) && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: PRI_COLOR[t.priority] }} title={t.priority} />}
                   {(t.project && t.project !== "General") && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--accent-bg)", color: "var(--accent)" }}>{t.project}</span>
                   )}
@@ -267,6 +180,9 @@ export default function ToDo() {
                     </span>
                   )}
                   {t.status === "in_progress" && <Badge color="amber">working</Badge>}
+                  {t.status === "blocked" && <Badge color="red">blocked</Badge>}
+                  {t.status === "failed" && <Badge color="red">failed</Badge>}
+                  {t.status === "cancel" && <Badge color="gray">cancelled</Badge>}
                 </div>
                 {t.description && <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{t.description}</p>}
                 <div className="flex gap-3 mt-1 text-[10px]" style={{ color: "var(--text-muted)" }}>
@@ -278,7 +194,7 @@ export default function ToDo() {
                   )}
                   {t.agent?.name && <span>{t.agent.name}</span>}
                 </div>
-                {t.output && t.status === "done" && (
+                {t.output && ["finished", "done"].includes(t.status) && (
                   <p className="text-xs mt-1 rounded p-2" style={{ background: "var(--bg-input)", color: "var(--text-muted)" }}>
                     {t.output.slice(0, 150)}{t.output.length > 150 ? "..." : ""}
                   </p>
@@ -294,32 +210,8 @@ export default function ToDo() {
               </div>
             </div>
           ))}
-          {tasks.length === 0 && <EmptyState>{statusFilter === "active" ? "No active tasks. You're all caught up!" : "No tasks found."}</EmptyState>}
-        </div>
-      )}
-
-      {viewMode === "board" && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {COLUMNS.map((col) => {
-            const colTickets = boardTickets.filter((t: any) => t.status === col.key);
-            return (
-              <div key={col.key} className="rounded-lg border min-h-[200px]" style={{ borderColor: "var(--border)", background: "var(--bg-input)" }}>
-                <div className="px-3 py-2 border-b font-medium text-xs" style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>
-                  {col.label} ({colTickets.length})
-                </div>
-                <div className="p-2 overflow-y-auto max-h-[60vh]">
-                  {colTickets.map((t: any) => (
-                    <TicketCard key={t.id} t={t} onStatusChange={(s) => updateStatus(t.id, s)} />
-                  ))}
-                  {colTickets.length === 0 && (
-                    <p className="text-xs py-4 text-center" style={{ color: "var(--text-muted)" }}>No tickets</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+        {tasks.length === 0 && <EmptyState>{statusFilter === "active" ? "No active tasks. You're all caught up!" : "No tasks found."}</EmptyState>}
+      </div>
     </div>
   );
 }

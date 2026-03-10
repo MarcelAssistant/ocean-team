@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { api } from "../api";
 import { Card, PageTitle, Btn, Input, Label, Badge, EmptyState } from "../components/ui";
 
-type Tab = "connections" | "agents" | "skills" | "logs" | "access" | "update";
+type Tab = "connections" | "agents" | "skills" | "projects" | "logs" | "access" | "update";
 
 export default function Settings() {
-  const [tab, setTab] = useState<Tab>("connections");
+  const location = useLocation();
+  const initialTab = (location.state as { tab?: Tab })?.tab;
+  const [tab, setTab] = useState<Tab>(initialTab && ["connections","agents","skills","projects","logs","access","update"].includes(initialTab) ? initialTab : "connections");
+  useEffect(() => { const t = (location.state as { tab?: Tab })?.tab; if (t) setTab(t); }, [location.state]);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "connections", label: "Connections" },
     { key: "agents", label: "Agents" },
     { key: "skills", label: "Skills" },
+    { key: "projects", label: "Projects" },
     { key: "logs", label: "Logs" },
     { key: "access", label: "Access" },
     { key: "update", label: "Update" },
@@ -35,6 +39,7 @@ export default function Settings() {
       {tab === "connections" && <ConnectionsTab />}
       {tab === "agents" && <AgentsTab />}
       {tab === "skills" && <SkillsTab />}
+      {tab === "projects" && <ProjectsTab />}
       {tab === "logs" && <LogsTab />}
       {tab === "access" && <AccessTab />}
       {tab === "update" && <UpdateTab />}
@@ -56,6 +61,8 @@ function ConnectionsTab() {
   const [testing, setTesting] = useState(false);
   const [veniceTestResult, setVeniceTestResult] = useState<any>(null);
   const [testingVenice, setTestingVenice] = useState(false);
+  const [generateResult, setGenerateResult] = useState<any>(null);
+  const [generatingVideo, setGeneratingVideo] = useState(false);
   const [tgStatus, setTgStatus] = useState<any>({ running: false });
   const [tgAction, setTgAction] = useState(false);
 
@@ -103,6 +110,24 @@ function ConnectionsTab() {
     }
   };
 
+  const testGenerateVideo = async () => {
+    setGeneratingVideo(true);
+    setGenerateResult(null);
+    try {
+      const key = veniceKey.trim();
+      if (!key) {
+        setGenerateResult({ success: false, error: "Enter your Venice API key above" });
+        return;
+      }
+      const r = await api.generateTestVideo(key, veniceModel);
+      setGenerateResult(r);
+    } catch (e: any) {
+      setGenerateResult({ success: false, error: e.message });
+    } finally {
+      setGeneratingVideo(false);
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-xl">
       <Card>
@@ -140,11 +165,13 @@ function ConnectionsTab() {
         <div className="space-y-3">
           <div><Label>Venice API Key</Label><Input type="password" value={veniceKey} onChange={(e) => setVeniceKey(e.target.value)} placeholder={settings.venice_api_key ? "••••••••" : "From venice.ai → Settings → API"} /></div>
           <div><Label>Default video model</Label><Input value={veniceModel} onChange={(e) => setVeniceModel(e.target.value)} placeholder="wan-2.6-image-to-video" /></div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <Btn onClick={testVenice} disabled={testingVenice}>{testingVenice ? "..." : "Test connection"}</Btn>
+            <Btn variant="ghost" onClick={testGenerateVideo} disabled={generatingVideo}>{generatingVideo ? "Generating (1–2 min)…" : "Generate test video"}</Btn>
             {veniceTestResult && <span className="text-xs" style={{ color: veniceTestResult.success ? "#4ade80" : "#f87171" }}>{veniceTestResult.success ? "Connected" : veniceTestResult.error}</span>}
+            {generateResult && <span className="text-xs" style={{ color: generateResult.success ? "#4ade80" : "#f87171" }}>{generateResult.success ? `Saved: ${generateResult.fileName}` : generateResult.error}</span>}
           </div>
-          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Venice key is used <strong>only</strong> for video (Wan 2.6).</p>
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Venice key is used <strong>only</strong> for video (Wan 2.6). Generate test video runs a real 5s render.</p>
         </div>
       </Card>
 
@@ -261,6 +288,85 @@ function AgentsTab() {
             </div>
           </Link>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function ProjectsTab() {
+  const [boardData, setBoardData] = useState<{ tickets: any[]; byProject: Record<string, any[]> } | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string>("");
+  const [projects, setProjects] = useState<string[]>([]);
+
+  const COLUMNS = [
+    { key: "created", label: "Created" },
+    { key: "ready", label: "Ready" },
+    { key: "in_progress", label: "In Progress" },
+    { key: "blocked", label: "Blocked" },
+    { key: "finished", label: "Finished" },
+    { key: "failed", label: "Failed" },
+    { key: "cancel", label: "Cancel" },
+  ];
+  const LEGACY: Record<string, string> = { queued: "ready", done: "finished" };
+  const norm = (s: string) => LEGACY[s] || s;
+
+  useEffect(() => {
+    api.getTicketsBoard().then((r) => {
+      setBoardData(r);
+      const projs = Object.keys(r?.byProject || {}).sort();
+      setProjects(projs);
+      if (!projectFilter && projs.length > 0) setProjectFilter(projs[0]);
+    }).catch(() => setBoardData(null));
+  }, []);
+
+  const boardTickets = (boardData?.tickets || [])
+    .map((t: any) => ({ ...t, _status: norm(t.status) }))
+    .filter((t: any) => {
+      const p = t.project || "General";
+      return !projectFilter || p === projectFilter;
+    });
+
+  return (
+    <div className="max-w-6xl">
+      <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>
+        Jira-style board per project. Select a project to see its tickets. The orchestrator asks for the project name when creating work.
+      </p>
+      <div className="flex gap-2 mb-4 items-center">
+        <span className="text-xs" style={{ color: "var(--text-muted)" }}>Project:</span>
+        <select
+          value={projectFilter}
+          onChange={(e) => setProjectFilter(e.target.value)}
+          className="rounded-md border px-3 py-2 text-sm"
+          style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+        >
+          <option value="">All projects</option>
+          {projects.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+          {projects.length === 0 && <option value="">No projects yet</option>}
+        </select>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 overflow-x-auto">
+        {COLUMNS.map((col) => {
+          const colTickets = boardTickets.filter((t: any) => (t._status || t.status) === col.key);
+          return (
+            <div key={col.key} className="rounded-lg border min-h-[180px] shrink-0" style={{ borderColor: "var(--border)", background: "var(--bg-input)", minWidth: 160 }}>
+              <div className="px-3 py-2 border-b font-medium text-xs" style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>
+                {col.label} ({colTickets.length})
+              </div>
+              <div className="p-2 overflow-y-auto max-h-[50vh]">
+                {colTickets.map((t: any) => (
+                  <div key={t.id} className="rounded-lg border px-2 py-1.5 mb-1.5 text-xs" style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}>
+                    <div className="font-medium truncate" style={{ color: "var(--text-primary)" }}>{t.title}</div>
+                    {t.agent?.name && <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{t.agent.name}</span>}
+                    {!t.agent?.name && !["finished","done","cancel"].includes(t.status) && <span className="text-[10px] text-amber-500">No agent</span>}
+                  </div>
+                ))}
+                {colTickets.length === 0 && <p className="text-[10px] py-3 text-center" style={{ color: "var(--text-muted)" }}>—</p>}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

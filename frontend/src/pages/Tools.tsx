@@ -7,6 +7,7 @@ import Email from "./Email";
 import Notes from "./Notes";
 import Automations from "./Automations";
 import Characters from "./Characters";
+import Videos from "./Videos";
 import { Card, Btn, Badge, Input, Label } from "../components/ui";
 
 // Built-in tools (always available)
@@ -16,6 +17,7 @@ const BUILTIN_TOOLS = [
   { id: "email", label: "Email", path: "email" },
   { id: "notes", label: "Notes", path: "notes" },
   { id: "characters", label: "Characters", path: "characters" },
+  { id: "videos", label: "Videos", path: "videos" },
   { id: "automations", label: "Automations", path: "automations" },
 ];
 
@@ -83,6 +85,7 @@ export default function Tools() {
         <Route path="email" element={<Email />} />
         <Route path="notes" element={<Notes />} />
         <Route path="characters" element={<Characters />} />
+        <Route path="videos" element={<Videos />} />
         <Route path="automations" element={<Automations />} />
         <Route index element={
           <div className="max-w-4xl">

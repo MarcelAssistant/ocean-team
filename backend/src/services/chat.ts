@@ -211,7 +211,7 @@ async function buildSystemPrompt(
         prompt += `\n  - ${a.name} (ID: ${a.id}) — ${a.role}: ${a.mission}`;
       }
     }
-    prompt += `\n\nTo delegate work: first call create_ticket to create a task, then call assign_ticket with the ticketId and the target agent's ID. The worker picks up queued tickets automatically — no user intervention until deliverables are ready. When you process a ticket, you own it: create sub-tickets if needed, assign to other agents, and run the full pipeline autonomously.`;
+    prompt += `\n\nTo delegate work: first call create_ticket to create a task, then call assign_ticket with the ticketId and the target agent's ID. Assigning an agent moves the ticket to "ready"; the worker picks up ready tickets automatically. When you process a ticket, you own it: create sub-tickets if needed, assign to other agents, and run the full pipeline autonomously.`;
   }
 
   if (skills.length > 0) {

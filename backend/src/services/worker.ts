@@ -7,7 +7,7 @@ const POLL_INTERVAL = 5000;
 
 async function processNextTicket(): Promise<boolean> {
   const ticket = await prisma.ticket.findFirst({
-    where: { status: "queued" },
+    where: { status: { in: ["ready", "queued"] } },
     orderBy: [
       { priority: "asc" },
       { createdAt: "asc" },
@@ -57,7 +57,7 @@ async function processNextTicket(): Promise<boolean> {
 
     await prisma.ticket.update({
       where: { id: ticket.id },
-      data: { status: "done", output: result.message.content },
+      data: { status: "finished", output: result.message.content },
     });
 
     await storeMemory(

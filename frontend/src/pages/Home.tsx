@@ -87,7 +87,7 @@ export default function Home() {
 
   if (!agentId) return <div className="flex items-center justify-center h-full" style={{ color: "var(--text-muted)" }}>Loading...</div>;
 
-  const sc = (s: string) => ({ done: "green" as const, in_progress: "amber" as const, queued: "blue" as const, failed: "red" as const }[s] || "gray" as const);
+  const sc = (s: string) => ({ finished: "green" as const, done: "green" as const, in_progress: "amber" as const, ready: "blue" as const, queued: "blue" as const, created: "gray" as const, blocked: "red" as const, failed: "red" as const, cancel: "gray" as const }[s] || "gray" as const);
   const priColor = (p: string) => ({ critical: "var(--accent)", high: "#f87171", medium: "var(--text-secondary)", low: "var(--text-muted)" }[p] || "var(--text-muted)");
 
   return (

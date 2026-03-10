@@ -76,4 +76,36 @@ export async function settingsRoutes(app: FastifyInstance) {
       return { success: false, error: e.message };
     }
   });
+
+  app.post("/api/settings/generate-test-video", async (req) => {
+    const body = (req.body as { apiKey?: string; model?: string }) || {};
+    const apiKey = body.apiKey?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_api_key" } }))?.value?.trim();
+    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.6-image-to-video";
+    if (!apiKey) return { success: false, error: "Venice API key not configured" };
+    try {
+      const { generateVideoAndWait } = await import("../services/venice.js");
+      const { getDataDir } = await import("../services/paths.js");
+      const pathMod = await import("path");
+      const fs = await import("fs");
+
+      // wan-2.6-image-to-video requires image_url — use minimal gradient placeholder (100x100 PNG)
+      const placeholderImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      const { queue_id, videoBuffer } = await generateVideoAndWait(apiKey, {
+        model,
+        prompt: "Smooth gradient background slowly shifting colors, cinematic motion, high quality",
+        duration: "5s",
+        resolution: "720p",
+        image_url: placeholderImage,
+      });
+
+      const workspaceDir = pathMod.join(getDataDir(), "workspace");
+      if (!fs.existsSync(workspaceDir)) fs.mkdirSync(workspaceDir, { recursive: true });
+      const fileName = `test-${queue_id}.mp4`;
+      fs.writeFileSync(pathMod.join(workspaceDir, fileName), videoBuffer);
+
+      return { success: true, fileName, videoUrl: `/api/files/${fileName}` };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  });
 }

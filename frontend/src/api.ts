@@ -33,6 +33,10 @@ export const api = {
     request<any>("/settings/test", { method: "POST", body: JSON.stringify(model ? { model } : {}) }),
   testVeniceConnection: (apiKey: string, model: string) =>
     request<any>("/settings/test-venice", { method: "POST", body: JSON.stringify({ apiKey, model }) }),
+  generateTestVideo: (apiKey?: string, model?: string) =>
+    request<any>("/settings/generate-test-video", { method: "POST", body: JSON.stringify({ apiKey, model }) }),
+
+  getFiles: () => request<{ files: { name: string; size: number; createdAt: string }[] }>("/files"),
 
   getAgents: () => request<any[]>("/agents"),
   getAgent: (id: string) => request<any>(`/agents/${id}`),

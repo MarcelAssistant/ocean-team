@@ -52,7 +52,7 @@ Return ONLY a valid JSON array, no other text. Format:
         category: ticket.category,
         project,
         parentTicketId: ticketId,
-        status: "queued",
+        status: "created",
         agentId: ticket.agentId,
         output: "",
         dueAt: ticket.dueAt,

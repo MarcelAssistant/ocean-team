@@ -6,10 +6,10 @@ const SCHEDULER_INTERVAL = 30_000; // check every 30s
 const BUILTIN_TASKS: Record<string, () => Promise<string>> = {
   health_check: async () => {
     const agents = await prisma.agent.count({ where: { enabled: true } });
-    const queuedTickets = await prisma.ticket.count({ where: { status: "queued" } });
+    const queuedTickets = await prisma.ticket.count({ where: { status: { in: ["ready", "queued"] } } });
     const failedTickets = await prisma.ticket.count({ where: { status: "failed" } });
     const unresolvedGaps = await prisma.skillGap.count({ where: { resolved: false } });
-    const msg = `Health: ${agents} active agents, ${queuedTickets} queued tickets, ${failedTickets} failed, ${unresolvedGaps} skill gaps`;
+    const msg = `Health: ${agents} active agents, ${queuedTickets} ready tickets, ${failedTickets} failed, ${unresolvedGaps} skill gaps`;
     await log("info", "system-agent", msg);
     return msg;
   },
@@ -90,7 +90,7 @@ const BUILTIN_TASKS: Record<string, () => Promise<string>> = {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const [completedTasks, upcomingEvents, pendingReminders] = await Promise.all([
-      prisma.ticket.count({ where: { status: "done", updatedAt: { gte: today } } }),
+      prisma.ticket.count({ where: { status: { in: ["finished", "done"] }, updatedAt: { gte: today } } }),
       prisma.calendarEvent.count({ where: { startAt: { gte: today, lt: tomorrow } } }),
       prisma.reminder.count({ where: { status: "pending", dueAt: { gte: today, lt: tomorrow } } }),
     ]);
@@ -138,7 +138,7 @@ const BUILTIN_TASKS: Record<string, () => Promise<string>> = {
     const { splitTicketIntoStories } = await import("./split-ticket.js");
     const large = await prisma.ticket.findMany({
       where: {
-        status: "queued",
+        status: { in: ["created", "ready", "queued"] },
         parentTicketId: null,
         description: { not: "" },
       },

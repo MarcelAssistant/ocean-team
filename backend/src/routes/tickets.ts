@@ -49,7 +49,7 @@ export async function ticketRoutes(app: FastifyInstance) {
         category: body.category || "Personal",
         project: body.project || body.category || "General",
         parentTicketId: body.parentTicketId || null,
-        status: body.status || "queued",
+        status: body.status || "created",
         agentId: body.agentId || null,
         dueAt: body.dueAt ? new Date(body.dueAt) : null,
         output: "",
@@ -92,12 +92,12 @@ export async function ticketRoutes(app: FastifyInstance) {
 
   app.post("/api/tickets/process", async () => {
     const ticket = await prisma.ticket.findFirst({
-      where: { status: "queued" },
+      where: { status: { in: ["ready", "queued"] } },
       orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
       include: { agent: true },
     });
 
-    if (!ticket) return { processed: false, message: "No queued tickets" };
+    if (!ticket) return { processed: false, message: "No ready tickets" };
 
     await prisma.ticket.update({
       where: { id: ticket.id },
@@ -128,11 +128,11 @@ export async function ticketRoutes(app: FastifyInstance) {
 
       await prisma.ticket.update({
         where: { id: ticket.id },
-        data: { status: "done", output: result.message.content },
+        data: { status: "finished", output: result.message.content },
       });
 
       await log("info", "worker", `Ticket processed: ${ticket.title}`, { ticketId: ticket.id });
-      return { processed: true, ticketId: ticket.id, status: "done" };
+      return { processed: true, ticketId: ticket.id, status: "finished" };
     } catch (e: any) {
       await prisma.ticket.update({
         where: { id: ticket.id },

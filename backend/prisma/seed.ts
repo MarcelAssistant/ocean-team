@@ -56,13 +56,15 @@ async function main() {
   const skills = {
     summarize_text: await upsertSkill("summarize_text", "Summarize a given text into key points",
       { text: { type: "string", description: "Text to summarize" } }, ["text"]),
-    create_ticket: await upsertSkill("create_ticket", "Create a new task. Set priority, category, project, and optional due date.",
-      { title: { type: "string" }, description: { type: "string" }, priority: { type: "string", enum: ["low", "medium", "high", "critical"] }, category: { type: "string", enum: ["Work", "Personal", "School", "Travel", "Health", "Finance"] }, project: { type: "string", description: "Project name for board grouping" }, parentTicketId: { type: "string", description: "Parent ticket ID if this is a story" }, dueAt: { type: "string", description: "ISO date-time for when this is due" } }, ["title"]),
+    create_ticket: await upsertSkill("create_ticket", "Create a new task. Always set project (ask the user for project name if not given). Set priority, category, and optional due date. Pass agentId to assign immediately (ticket becomes ready for worker).",
+      { title: { type: "string" }, description: { type: "string" }, priority: { type: "string", enum: ["low", "medium", "high", "critical"] }, category: { type: "string", enum: ["Work", "Personal", "School", "Travel", "Health", "Finance"] }, project: { type: "string", description: "Project name for board grouping" }, parentTicketId: { type: "string", description: "Parent ticket ID if this is a story" }, agentId: { type: "string", description: "Assign to agent immediately (from list_agents); ticket becomes ready for worker" }, dueAt: { type: "string", description: "ISO date-time for when this is due" } }, ["title"]),
     assign_ticket: await upsertSkill("assign_ticket", "Assign a ticket to an agent by their ID.",
       { ticketId: { type: "string" }, agentId: { type: "string" } }, ["ticketId", "agentId"]),
     list_agents: await upsertSkill("list_agents", "List all available agents with their IDs, roles, and missions.", {}),
-    list_tickets: await upsertSkill("list_tickets", "List current tickets, optionally filtered by status.",
-      { status: { type: "string", enum: ["queued", "in_progress", "done", "failed"] } }),
+    list_tickets: await upsertSkill("list_tickets", "List all tickets (Jira-style). Call with no args to see full board. Statuses: created, ready, in_progress, blocked, finished, failed, cancel.",
+      { status: { type: "string", enum: ["created", "ready", "in_progress", "blocked", "finished", "failed", "cancel"] } }),
+    cancel_ticket: await upsertSkill("cancel_ticket", "Cancel a ticket (orchestrator only). Use only after the user explicitly requests cancellation. Only tickets in created/ready/blocked can be cancelled.",
+      { ticketId: { type: "string" } }, ["ticketId"]),
     split_ticket_into_stories: await upsertSkill("split_ticket_into_stories", "Split a large ticket into 3–5 smaller agile stories for parallel work. Use when a task is too big.",
       { ticketId: { type: "string", description: "ID of the ticket to split" } }, ["ticketId"]),
     read_emails: await upsertSkill("read_emails", "Read recent emails from the inbox.",
@@ -326,6 +328,7 @@ async function main() {
     [orchestrator.id, skills.assign_ticket.id],
     [orchestrator.id, skills.list_agents.id],
     [orchestrator.id, skills.list_tickets.id],
+    [orchestrator.id, skills.cancel_ticket.id],
     [orchestrator.id, skills.split_ticket_into_stories.id],
     [orchestrator.id, skills.read_emails.id],
     [orchestrator.id, skills.send_email.id],
@@ -512,13 +515,22 @@ Your job is to:
 5. Track progress across tickets and surface risks, blockers, and decisions
 6. Report back concise, high-signal summaries of what happened
 
+PROJECT DIMENSION — always use a project name for tickets. When the user asks for work (video, tasks, etc.):
+1. Ask "What project should this go under?" or "Which project is this for?" if they haven't specified.
+2. Use the project name in create_ticket (project field). Projects appear in Settings → Projects with a Jira-style board per project.
+3. Examples: "Wan 2.6 teaser", "Product Launch Q2", "Client X Campaign".
+
 WORKFLOW — always follow these steps:
 1. Analyze the request and clarify the success criteria in your own words
-2. Decide which agent(s) should handle which part, based on role and mission
-3. Call create_ticket for each meaningful task, grouping work logically
-4. Call assign_ticket to route each ticket to the right agent
-5. Use list_tickets and list_agents to keep an overview of work-in-flight
-6. Confirm to the user what was created, how it is assigned, and expected outcomes
+2. Establish the project name (ask the user if not given)
+3. Call list_tickets (no filter) first to see the full board — created, ready, in_progress, blocked, finished, failed, cancel
+4. Decide which agent(s) should handle which part, based on role and mission
+5. Call create_ticket for each meaningful task with the project field, grouping work logically
+6. Call assign_ticket to route each ticket to the right agent (assigning moves created → ready; workers pick up ready)
+7. Use list_tickets to keep an overview of work-in-flight
+8. Confirm to the user what was created, how it is assigned, and expected outcomes
+
+TICKET CANCELLATION — only you (the orchestrator) can cancel tickets. Use cancel_ticket only when the user explicitly asks to cancel a specific ticket. Do not cancel on your own initiative.
 
 CAPABILITIES:
 - Create and manage tickets and assign them to agents

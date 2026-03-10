@@ -118,13 +118,32 @@ export default function Characters() {
       )}
 
       {!loading && characters.length > 0 && (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {characters.map((c) => (
-            <Card key={c.id}>
-              <div className="flex items-start justify-between gap-3">
-                {c.referenceImagePath && (
-                  <img src={`/api/files/${c.referenceImagePath}`} alt={c.name} className="w-16 h-16 object-cover rounded-lg shrink-0" style={{ border: "1px solid var(--border)" }} />
-                )}
+            <Card key={c.id} className="overflow-hidden">
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Character visual — reference image or avatar placeholder */}
+                <div className="shrink-0 flex justify-center sm:justify-start">
+                  {c.referenceImagePath ? (
+                    <img
+                      src={`/api/files/${c.referenceImagePath}`}
+                      alt={c.name}
+                      className="w-32 h-32 object-cover rounded-xl border-2"
+                      style={{ borderColor: c.style === "manga_realistic" ? "#a78bfa" : "#60a5fa" }}
+                    />
+                  ) : (
+                    <div
+                      className="w-32 h-32 rounded-xl flex items-center justify-center text-4xl font-bold"
+                      style={{
+                        background: c.style === "manga_realistic" ? "linear-gradient(135deg, #a78bfa22 0%, #ec489922 100%)" : "linear-gradient(135deg, #60a5fa22 0%, #34d39922 100%)",
+                        border: `2px solid ${c.style === "manga_realistic" ? "#a78bfa44" : "#60a5fa44"}`,
+                        color: c.style === "manga_realistic" ? "#a78bfa" : "#60a5fa",
+                      }}
+                    >
+                      {(c.name || "?").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <button onClick={() => setSelectedId(selectedId === c.id ? null : c.id)} className="text-sm font-medium hover:underline" style={{ color: "var(--accent)" }}>{c.name}</button>
@@ -159,7 +178,14 @@ export default function Characters() {
                     </div>
                   )}
                 </div>
-                <Btn variant="ghost" onClick={() => setSelectedId(selectedId === c.id ? null : c.id)}>{selectedId === c.id ? "Less" : "More"}</Btn>
+                <Btn variant="ghost" onClick={() => setSelectedId(selectedId === c.id ? null : c.id)} className="shrink-0">{selectedId === c.id ? "Less" : "More"}</Btn>
+              </div>
+              {/* Visual summary bar */}
+              <div className="mt-2 pt-2 border-t flex flex-wrap gap-1" style={{ borderColor: "var(--border)" }}>
+                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: c.style === "manga_realistic" ? "#a78bfa22" : "#60a5fa22", color: c.style === "manga_realistic" ? "#a78bfa" : "#60a5fa" }}>
+                  {c.style === "manga_realistic" ? "Manga" : "Hyper-realistic"}
+                </span>
+                {c.outfits?.length > 0 && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--bg-input)", color: "var(--text-muted)" }}>{c.outfits.length} outfit{c.outfits.length !== 1 ? "s" : ""}</span>}
               </div>
             </Card>
           ))}

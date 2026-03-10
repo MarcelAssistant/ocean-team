@@ -218,7 +218,7 @@ function TicketsTab({ agent }: { agent: any }) {
         <Card key={t.id}>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t.title}</span>
-            <Badge color={t.status === "done" ? "green" : t.status === "failed" ? "red" : "blue"}>{t.status}</Badge>
+            <Badge color={["finished", "done"].includes(t.status) ? "green" : t.status === "failed" ? "red" : t.status === "cancel" ? "gray" : "blue"}>{t.status}</Badge>
           </div>
           {t.output && <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>{t.output.slice(0, 200)}</p>}
         </Card>

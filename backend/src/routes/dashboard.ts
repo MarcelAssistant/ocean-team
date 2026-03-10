@@ -22,13 +22,13 @@ export async function dashboardRoutes(app: FastifyInstance) {
         orderBy: { startAt: "asc" }, take: 10,
       }),
       prisma.ticket.findMany({
-        where: { status: { in: ["queued", "in_progress"] } },
+        where: { status: { in: ["created", "ready", "queued", "in_progress"] } },
         include: { agent: { select: { name: true } } },
         orderBy: [{ priority: "asc" }, { dueAt: "asc" }, { createdAt: "desc" }],
         take: 8,
       }),
       prisma.ticket.findMany({
-        where: { status: { in: ["queued", "in_progress"] }, dueAt: { lt: now } },
+        where: { status: { in: ["created", "ready", "queued", "in_progress"] }, dueAt: { lt: now } },
         orderBy: { dueAt: "asc" }, take: 5,
       }),
       prisma.reminder.findMany({
@@ -36,7 +36,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
         orderBy: { dueAt: "asc" },
       }),
       prisma.ticket.findMany({
-        where: { status: "done", updatedAt: { gte: todayStart } },
+        where: { status: { in: ["finished", "done"] }, updatedAt: { gte: todayStart } },
         orderBy: { updatedAt: "desc" }, take: 5,
       }),
     ]);
