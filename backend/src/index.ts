@@ -64,10 +64,11 @@ app.addHook("onRequest", async (req, reply) => {
   }
 });
 
-app.setErrorHandler((error, _request, reply) => {
+app.setErrorHandler((error: unknown, _request, reply) => {
   console.error(error);
-  reply.status(error.statusCode || 500).send({
-    error: error.message || "Internal Server Error",
+  const err = error as { statusCode?: number; message?: string };
+  reply.status(err.statusCode || 500).send({
+    error: err.message || "Internal Server Error",
   });
 });
 

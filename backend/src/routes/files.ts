@@ -61,9 +61,14 @@ export async function fileRoutes(app: FastifyInstance) {
     let textContent = "";
     try {
       if (ext === ".pdf") {
-        const pdfParse = (await import("pdf-parse")).default;
-        const parsed = await pdfParse(buffer);
-        textContent = parsed.text;
+        const { PDFParse } = await import("pdf-parse");
+        const parser = new PDFParse({ data: buffer });
+        try {
+          const result = await parser.getText();
+          textContent = result.text;
+        } finally {
+          await parser.destroy();
+        }
       } else if (ext === ".xlsx" || ext === ".xls") {
         const XLSX = await import("xlsx");
         const wb = XLSX.read(buffer, { type: "buffer" });

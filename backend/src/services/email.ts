@@ -43,7 +43,7 @@ export async function syncInbox(): Promise<number> {
       });
 
       for await (const msg of messages) {
-        const env = msg.envelope;
+        const env = msg.envelope ?? {};
         const messageId = env.messageId || msg.uid?.toString() || "";
 
         const existing = await prisma.emailMessage.findFirst({
@@ -161,9 +161,14 @@ export async function parseAttachment(buffer: Buffer, filename: string): Promise
   const ext = filename.toLowerCase().split(".").pop();
 
   if (ext === "pdf") {
-    const pdfParse = (await import("pdf-parse")).default;
-    const data = await pdfParse(buffer);
-    return data.text;
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const result = await parser.getText();
+      return result.text;
+    } finally {
+      await parser.destroy();
+    }
   }
 
   if (ext === "xlsx" || ext === "xls") {

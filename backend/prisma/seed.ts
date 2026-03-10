@@ -476,8 +476,8 @@ async function main() {
   });
 
   console.log("Seed complete!");
-  console.log("  - 3 agents: System, Orchestrator, Research Agent");
-  console.log("  - 13 skills, 9 scheduled tasks, 1 skill gap");
+  console.log("  - 6 agents: System, Ocean, Concept & Script, Character & World, Production, Review");
+  console.log("  - 22 skills, 9 scheduled tasks, 1 skill gap");
   console.log("  - 4 modules available: Finance, Travel, School, Health");
 }
 
