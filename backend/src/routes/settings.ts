@@ -58,7 +58,7 @@ export async function settingsRoutes(app: FastifyInstance) {
   app.post("/api/settings/test-venice", async (req) => {
     const body = (req.body as { apiKey?: string; model?: string }) || {};
     const apiKey = body.apiKey?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_api_key" } }))?.value?.trim();
-    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.5-preview-image-to-video";
+    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.6-image-to-video";
     if (!apiKey) return { success: false, error: "Venice API key not configured" };
     try {
       const res = await fetch("https://api.venice.ai/api/v1/video/quote", {
@@ -80,7 +80,7 @@ export async function settingsRoutes(app: FastifyInstance) {
   app.post("/api/settings/generate-test-video", async (req) => {
     const body = (req.body as { apiKey?: string; model?: string }) || {};
     const apiKey = body.apiKey?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_api_key" } }))?.value?.trim();
-    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.5-preview-image-to-video";
+    const model = body.model?.trim() || (await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } }))?.value?.trim() || "wan-2.6-image-to-video";
     if (!apiKey) return { success: false, error: "Venice API key not configured" };
     try {
       const { generateVideoAndWait } = await import("../services/venice.js");
@@ -88,15 +88,13 @@ export async function settingsRoutes(app: FastifyInstance) {
       const pathMod = await import("path");
       const fs = await import("fs");
 
-      // Venice image-to-video requires image_url. Use data URL (Venice fetches URLs; data URL is more reliable)
-      // Minimal 64x64 gray PNG — Venice docs example uses data:image/png;base64,...
-      const placeholderImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAMElEQVR42u3OMQEAAAjDMMC/52ECvlCI00nZ3r0dAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwG6xoAAZ/1HwsAAAAASUVORK5CYII=";
+      // Use wan-2.6-text-to-video for test — no image_url needed
       const { queue_id, videoBuffer } = await generateVideoAndWait(apiKey, {
-        model,
-        prompt: "Smooth gradient background slowly shifting colors, cinematic motion, high quality",
+        model: "wan-2.6-text-to-video",
+        prompt: "Cinematic slow motion shot of a futuristic city at sunset, smooth camera movement",
         duration: "5s",
         resolution: "720p",
-        image_url: placeholderImage,
+        aspect_ratio: "16:9",
       });
 
       const workspaceDir = pathMod.join(getDataDir(), "workspace");

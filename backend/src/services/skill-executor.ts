@@ -520,7 +520,7 @@ const BUILTIN_SKILLS: Record<string, SkillHandler> = {
       return { success: false, data: {}, message: "Venice API key not set. Add it in Settings (Video — Venice AI)." };
     }
     const modelSetting = await prisma.setting.findUnique({ where: { key: "venice_default_video_model" } });
-    const model = (modelSetting?.value || "wan-2.5-preview-image-to-video").trim();
+    const model = (modelSetting?.value || "wan-2.6-image-to-video").trim();
     const durationVenice = duration === 10 ? "10s" : "5s";
     try {
       const { queue_id, videoBuffer } = await generateVideoAndWait(

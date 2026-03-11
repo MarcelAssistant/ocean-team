@@ -19,7 +19,7 @@ export type VeniceQueueParams = {
   audio?: boolean;
 };
 
-export type VeniceQueueResult = { model: string; queue_id: string };
+export type VeniceQueueResult = { model?: string; queue_id: string };
 
 export type VeniceRetrieveResult =
   | { status: "PROCESSING"; average_execution_time: number; execution_duration: number }
@@ -32,10 +32,10 @@ export async function queueVideo(apiKey: string, params: VeniceQueueParams): Pro
     duration: params.duration,
     resolution: params.resolution ?? "720p",
     aspect_ratio: params.aspect_ratio ?? "16:9",
-    negative_prompt: params.negative_prompt ?? "low resolution, error, worst quality, low quality, defects",
-    audio: params.audio ?? false,
   };
   if (params.image_url) body.image_url = params.image_url;
+  if (params.negative_prompt !== undefined) body.negative_prompt = params.negative_prompt;
+  if (params.audio !== undefined) body.audio = params.audio;
 
   const res = await fetch(`${VENICE_BASE}/video/queue`, {
     method: "POST",
@@ -52,8 +52,8 @@ export async function queueVideo(apiKey: string, params: VeniceQueueParams): Pro
   }
 
   const data = (await res.json()) as VeniceQueueResult;
-  if (!data.queue_id || !data.model) throw new Error("Venice API did not return queue_id or model.");
-  return data;
+  if (!data.queue_id) throw new Error("Venice API did not return queue_id.");
+  return { model: data.model ?? params.model, queue_id: data.queue_id };
 }
 
 export async function retrieveVideo(
@@ -86,9 +86,18 @@ export async function retrieveVideo(
 
   const data = (await res.json()) as {
     status?: string;
+    video_url?: string;
     average_execution_time?: number;
     execution_duration?: number;
   };
+
+  if (data.status === "COMPLETED" && data.video_url) {
+    const vidRes = await fetch(data.video_url);
+    if (!vidRes.ok) throw new Error(`Failed to fetch video from ${data.video_url}`);
+    const videoBuffer = Buffer.from(await vidRes.arrayBuffer());
+    return { status: "COMPLETED", videoBuffer };
+  }
+
   return {
     status: "PROCESSING",
     average_execution_time: data.average_execution_time ?? 0,
